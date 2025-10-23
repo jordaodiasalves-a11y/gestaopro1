@@ -28,6 +28,7 @@ interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   hasPermission: (permission: Permission) => boolean;
+  changePassword: (username: string, newPassword: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -84,13 +85,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return user.permissions?.includes(permission) || false;
   };
 
+  const changePassword = (username: string, newPassword: string): boolean => {
+    const users = JSON.parse(localStorage.getItem('app_users') || '[]');
+    const userIndex = users.findIndex((u: any) => u.username === username);
+    
+    if (userIndex === -1) return false;
+    
+    users[userIndex].password = newPassword;
+    localStorage.setItem('app_users', JSON.stringify(users));
+    
+    // Se for o usuário atual, atualizar a sessão
+    if (user?.username === username) {
+      const userData = { ...user };
+      localStorage.setItem('current_user', JSON.stringify(userData));
+    }
+    
+    return true;
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('current_user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, hasPermission }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, hasPermission, changePassword }}>
       {children}
     </AuthContext.Provider>
   );

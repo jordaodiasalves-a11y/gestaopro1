@@ -80,10 +80,6 @@ export default function Login() {
               Entrar
             </Button>
           </form>
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p>Usuário padrão: <strong>admin</strong></p>
-            <p>Senha padrão: <strong>suporte@1</strong></p>
-          </div>
         </CardContent>
       </Card>
     </div>

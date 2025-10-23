@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { UserPlus, Trash2, Users, Edit } from 'lucide-react';
+import { UserPlus, Trash2, Users, Edit, Key } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -36,11 +36,14 @@ const AVAILABLE_PERMISSIONS: { value: Permission; label: string }[] = [
 ];
 
 export default function UserManagement() {
-  const { user } = useAuth();
+  const { user, changePassword } = useAuth();
   const [users, setUsers] = useState<StoredUser[]>([]);
   const [newUser, setNewUser] = useState<StoredUser>({ username: '', password: '', role: 'user', permissions: [] });
   const [editingUser, setEditingUser] = useState<StoredUser | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => {
     loadUsers();
@@ -110,6 +113,44 @@ export default function UserManagement() {
     }
   };
 
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Erro",
+        description: "As senhas não coincidem.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 4) {
+      toast({
+        title: "Erro",
+        description: "A senha deve ter pelo menos 4 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (changePassword('admin', newPassword)) {
+      toast({
+        title: "Senha alterada!",
+        description: "Sua senha foi alterada com sucesso.",
+      });
+      setIsPasswordDialogOpen(false);
+      setNewPassword('');
+      setConfirmPassword('');
+    } else {
+      toast({
+        title: "Erro",
+        description: "Não foi possível alterar a senha.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDeleteUser = (username: string) => {
     if (username === 'admin') {
       toast({
@@ -136,9 +177,51 @@ export default function UserManagement() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <Users className="w-8 h-8 text-primary" />
-        <h1 className="text-3xl font-bold">Gerenciamento de Usuários</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Users className="w-8 h-8 text-primary" />
+          <h1 className="text-3xl font-bold">Gerenciamento de Usuários</h1>
+        </div>
+        <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline">
+              <Key className="w-4 h-4 mr-2" />
+              Alterar Minha Senha
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Alterar Senha do Admin</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">Nova Senha</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Digite a nova senha"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirme a nova senha"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full">
+                Alterar Senha
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>
