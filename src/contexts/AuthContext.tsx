@@ -1,8 +1,25 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
+export type Permission = 
+  | 'dashboard' 
+  | 'products' 
+  | 'sales' 
+  | 'reports' 
+  | 'customers' 
+  | 'materials' 
+  | 'services' 
+  | 'expenses' 
+  | 'production' 
+  | 'marketplace-orders' 
+  | 'suppliers' 
+  | 'employees' 
+  | 'invoices' 
+  | 'assets';
+
 interface User {
   username: string;
   role: 'admin' | 'user';
+  permissions?: Permission[];
 }
 
 interface AuthContextType {
@@ -10,13 +27,19 @@ interface AuthContextType {
   login: (username: string, password: string) => boolean;
   logout: () => void;
   isAuthenticated: boolean;
+  hasPermission: (permission: Permission) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Usuários padrão armazenados no localStorage
 const DEFAULT_USERS = [
-  { username: 'admin', password: 'suporte@1', role: 'admin' as const }
+  { 
+    username: 'admin', 
+    password: 'suporte@1', 
+    role: 'admin' as const,
+    permissions: [] as Permission[] // Admin tem acesso a tudo
+  }
 ];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -43,12 +66,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     if (foundUser) {
-      const userData = { username: foundUser.username, role: foundUser.role };
+      const userData = { 
+        username: foundUser.username, 
+        role: foundUser.role,
+        permissions: foundUser.permissions || []
+      };
       setUser(userData);
       localStorage.setItem('current_user', JSON.stringify(userData));
       return true;
     }
     return false;
+  };
+
+  const hasPermission = (permission: Permission): boolean => {
+    if (!user) return false;
+    if (user.role === 'admin') return true;
+    return user.permissions?.includes(permission) || false;
   };
 
   const logout = () => {
@@ -57,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );

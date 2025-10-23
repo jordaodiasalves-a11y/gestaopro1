@@ -1,24 +1,46 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, Permission } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { UserPlus, Trash2, Users } from 'lucide-react';
+import { UserPlus, Trash2, Users, Edit } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface StoredUser {
   username: string;
   password: string;
   role: 'admin' | 'user';
+  permissions: Permission[];
 }
+
+const AVAILABLE_PERMISSIONS: { value: Permission; label: string }[] = [
+  { value: 'dashboard', label: 'Dashboard' },
+  { value: 'products', label: 'Produtos' },
+  { value: 'sales', label: 'Vendas' },
+  { value: 'reports', label: 'Relatórios' },
+  { value: 'customers', label: 'Clientes' },
+  { value: 'materials', label: 'Materiais' },
+  { value: 'services', label: 'Serviços' },
+  { value: 'expenses', label: 'Despesas' },
+  { value: 'production', label: 'Produção' },
+  { value: 'marketplace-orders', label: 'Pedidos Marketplace' },
+  { value: 'suppliers', label: 'Fornecedores' },
+  { value: 'employees', label: 'Funcionários' },
+  { value: 'invoices', label: 'Faturas' },
+  { value: 'assets', label: 'Ativos' },
+];
 
 export default function UserManagement() {
   const { user } = useAuth();
   const [users, setUsers] = useState<StoredUser[]>([]);
-  const [newUser, setNewUser] = useState<StoredUser>({ username: '', password: '', role: 'user' });
+  const [newUser, setNewUser] = useState<StoredUser>({ username: '', password: '', role: 'user', permissions: [] });
+  const [editingUser, setEditingUser] = useState<StoredUser | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -44,12 +66,48 @@ export default function UserManagement() {
     const updatedUsers = [...users, newUser];
     localStorage.setItem('app_users', JSON.stringify(updatedUsers));
     setUsers(updatedUsers);
-    setNewUser({ username: '', password: '', role: 'user' });
+    setNewUser({ username: '', password: '', role: 'user', permissions: [] });
     
     toast({
       title: "Usuário criado!",
       description: `Usuário ${newUser.username} foi criado com sucesso.`,
     });
+  };
+
+  const handleEditUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    const updatedUsers = users.map(u => 
+      u.username === editingUser.username ? editingUser : u
+    );
+    localStorage.setItem('app_users', JSON.stringify(updatedUsers));
+    setUsers(updatedUsers);
+    setIsEditDialogOpen(false);
+    setEditingUser(null);
+    
+    toast({
+      title: "Usuário atualizado!",
+      description: `Permissões de ${editingUser.username} foram atualizadas.`,
+    });
+  };
+
+  const togglePermission = (permission: Permission, isNew: boolean = false) => {
+    const target = isNew ? newUser : editingUser;
+    if (!target) return;
+
+    const currentPermissions = target.permissions || [];
+    const hasPermission = currentPermissions.includes(permission);
+    
+    const updatedPermissions = hasPermission
+      ? currentPermissions.filter(p => p !== permission)
+      : [...currentPermissions, permission];
+
+    if (isNew) {
+      setNewUser({ ...newUser, permissions: updatedPermissions });
+    } else {
+      setEditingUser({ ...editingUser!, permissions: updatedPermissions });
+    }
   };
 
   const handleDeleteUser = (username: string) => {
@@ -128,6 +186,30 @@ export default function UserManagement() {
                 </select>
               </div>
             </div>
+            
+            {newUser.role === 'user' && (
+              <div className="space-y-2">
+                <Label>Permissões de Acesso</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 border rounded-lg">
+                  {AVAILABLE_PERMISSIONS.map((perm) => (
+                    <div key={perm.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`new-${perm.value}`}
+                        checked={newUser.permissions?.includes(perm.value)}
+                        onCheckedChange={() => togglePermission(perm.value, true)}
+                      />
+                      <label
+                        htmlFor={`new-${perm.value}`}
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        {perm.label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <Button type="submit">
               <UserPlus className="w-4 h-4 mr-2" />
               Adicionar Usuário
@@ -153,19 +235,74 @@ export default function UserManagement() {
                   </div>
                   <div>
                     <p className="font-semibold">{u.username}</p>
-                    <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>
-                      {u.role === 'admin' ? 'Administrador' : 'Usuário'}
-                    </Badge>
+                    <div className="flex gap-2 mt-1">
+                      <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>
+                        {u.role === 'admin' ? 'Administrador' : 'Usuário'}
+                      </Badge>
+                      {u.role === 'user' && u.permissions && (
+                        <Badge variant="outline">
+                          {u.permissions.length} permissões
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
                 {u.username !== 'admin' && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteUser(u.username)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-2">
+                    {u.role === 'user' && (
+                      <Dialog open={isEditDialogOpen && editingUser?.username === u.username} onOpenChange={(open) => {
+                        setIsEditDialogOpen(open);
+                        if (!open) setEditingUser(null);
+                      }}>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingUser({ ...u })}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl">
+                          <DialogHeader>
+                            <DialogTitle>Editar Permissões - {u.username}</DialogTitle>
+                          </DialogHeader>
+                          <form onSubmit={handleEditUser} className="space-y-4">
+                            <div className="space-y-2">
+                              <Label>Permissões de Acesso</Label>
+                              <div className="grid grid-cols-2 gap-3 p-4 border rounded-lg max-h-96 overflow-y-auto">
+                                {AVAILABLE_PERMISSIONS.map((perm) => (
+                                  <div key={perm.value} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`edit-${perm.value}`}
+                                      checked={editingUser?.permissions?.includes(perm.value)}
+                                      onCheckedChange={() => togglePermission(perm.value, false)}
+                                    />
+                                    <label
+                                      htmlFor={`edit-${perm.value}`}
+                                      className="text-sm font-medium leading-none cursor-pointer"
+                                    >
+                                      {perm.label}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <Button type="submit" className="w-full">
+                              Salvar Alterações
+                            </Button>
+                          </form>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteUser(u.username)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 )}
               </div>
             ))}

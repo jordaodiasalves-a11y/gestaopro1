@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { SoundAlertProvider } from "./contexts/SoundAlertContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import PermissionRoute from "./components/PermissionRoute";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -41,23 +42,23 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
-              <Route path="/products" element={<ProtectedRoute><Layout><Products /></Layout></ProtectedRoute>} />
-              <Route path="/sales" element={<ProtectedRoute><Layout><Sales /></Layout></ProtectedRoute>} />
-              <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
-              <Route path="/customers" element={<ProtectedRoute><Layout><Customers /></Layout></ProtectedRoute>} />
-              <Route path="/materials" element={<ProtectedRoute><Layout><Materials /></Layout></ProtectedRoute>} />
-              <Route path="/services" element={<ProtectedRoute><Layout><Services /></Layout></ProtectedRoute>} />
-              <Route path="/expenses" element={<ProtectedRoute><Layout><Expenses /></Layout></ProtectedRoute>} />
-              <Route path="/production" element={<ProtectedRoute><Layout><Production /></Layout></ProtectedRoute>} />
-              <Route path="/production-display" element={<ProtectedRoute><ProductionDisplay /></ProtectedRoute>} />
-              <Route path="/monitor-display" element={<ProtectedRoute><MonitorDisplay /></ProtectedRoute>} />
-              <Route path="/products-to-restock" element={<ProtectedRoute><ProductsToRestock /></ProtectedRoute>} />
-              <Route path="/marketplace-orders" element={<ProtectedRoute><Layout><MarketplaceOrders /></Layout></ProtectedRoute>} />
-              <Route path="/suppliers" element={<ProtectedRoute><Layout><Suppliers /></Layout></ProtectedRoute>} />
-              <Route path="/employees" element={<ProtectedRoute><Layout><Employees /></Layout></ProtectedRoute>} />
-              <Route path="/invoices" element={<ProtectedRoute><Layout><Invoices /></Layout></ProtectedRoute>} />
-              <Route path="/assets" element={<ProtectedRoute><Layout><Assets /></Layout></ProtectedRoute>} />
+              <Route path="/dashboard" element={<PermissionRoute permission="dashboard"><Layout><Dashboard /></Layout></PermissionRoute>} />
+              <Route path="/products" element={<PermissionRoute permission="products"><Layout><Products /></Layout></PermissionRoute>} />
+              <Route path="/sales" element={<PermissionRoute permission="sales"><Layout><Sales /></Layout></PermissionRoute>} />
+              <Route path="/reports" element={<PermissionRoute permission="reports"><Layout><Reports /></Layout></PermissionRoute>} />
+              <Route path="/customers" element={<PermissionRoute permission="customers"><Layout><Customers /></Layout></PermissionRoute>} />
+              <Route path="/materials" element={<PermissionRoute permission="materials"><Layout><Materials /></Layout></PermissionRoute>} />
+              <Route path="/services" element={<PermissionRoute permission="services"><Layout><Services /></Layout></PermissionRoute>} />
+              <Route path="/expenses" element={<PermissionRoute permission="expenses"><Layout><Expenses /></Layout></PermissionRoute>} />
+              <Route path="/production" element={<PermissionRoute permission="production"><Layout><Production /></Layout></PermissionRoute>} />
+              <Route path="/production-display" element={<ProductionDisplay />} />
+              <Route path="/monitor-display" element={<MonitorDisplay />} />
+              <Route path="/products-to-restock" element={<ProductsToRestock />} />
+              <Route path="/marketplace-orders" element={<PermissionRoute permission="marketplace-orders"><Layout><MarketplaceOrders /></Layout></PermissionRoute>} />
+              <Route path="/suppliers" element={<PermissionRoute permission="suppliers"><Layout><Suppliers /></Layout></PermissionRoute>} />
+              <Route path="/employees" element={<PermissionRoute permission="employees"><Layout><Employees /></Layout></PermissionRoute>} />
+              <Route path="/invoices" element={<PermissionRoute permission="invoices"><Layout><Invoices /></Layout></PermissionRoute>} />
+              <Route path="/assets" element={<PermissionRoute permission="assets"><Layout><Assets /></Layout></PermissionRoute>} />
               <Route path="/user-management" element={<ProtectedRoute><Layout><UserManagement /></Layout></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
