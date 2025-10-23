@@ -30,7 +30,7 @@ export function SoundAlertProvider({ children }: { children: ReactNode }) {
     if (alertMode === 'interval') {
       const interval = setInterval(() => {
         playAlert();
-      }, 20 * 60 * 1000); // 20 minutos
+      }, 5 * 60 * 1000); // 5 minutos
 
       return () => clearInterval(interval);
     }

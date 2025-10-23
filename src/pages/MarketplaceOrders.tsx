@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useSoundAlert } from "@/contexts/SoundAlertContext";
+import { ManualOrderForm } from "@/components/marketplace/ManualOrderForm";
+import { IntegrationConfig } from "@/components/marketplace/IntegrationConfig";
 
 interface MarketplaceOrder {
   id: string;
@@ -27,35 +29,17 @@ export default function MarketplaceOrders() {
   const [previousOrderCount, setPreviousOrderCount] = useState(0);
   const { playAlert, alertMode } = useSoundAlert();
 
-  const { data: orders = [] } = useQuery({
+  const { data: orders = [], refetch } = useQuery({
     queryKey: ['marketplace-orders'],
     queryFn: async () => {
-      // Simulação - você deve adaptar para sua API
-      const mockOrders: MarketplaceOrder[] = [
-        {
-          id: "1",
-          order_number: "MP-001",
-          customer_name: "João Silva",
-          items: [
-            { product: "Parafusos M6", quantity: 100, location: "Estoque A - Prateleira 3" },
-            { product: "Porcas M6", quantity: 100, location: "Estoque A - Prateleira 4" }
-          ],
-          status: "pendente",
-          created_date: new Date().toISOString()
-        },
-        {
-          id: "2",
-          order_number: "MP-002",
-          customer_name: "Maria Santos",
-          items: [
-            { product: "Arruelas", quantity: 200, location: "Estoque B - Prateleira 1" }
-          ],
-          status: "separando",
-          created_date: new Date().toISOString()
-        }
-      ];
-      return mockOrders;
+      // Carregar pedidos do localStorage
+      const stored = localStorage.getItem('marketplace_orders');
+      if (stored) {
+        return JSON.parse(stored) as MarketplaceOrder[];
+      }
+      return [];
     },
+    refetchInterval: 5000, // Atualiza a cada 5 segundos
   });
 
   // Tocar alerta quando novo pedido chegar
@@ -69,7 +53,13 @@ export default function MarketplaceOrders() {
 
   const completeOrderMutation = useMutation({
     mutationFn: async ({ orderId, employeeName }: { orderId: string; employeeName: string }) => {
-      // Adapte para sua API
+      const orders = JSON.parse(localStorage.getItem('marketplace_orders') || '[]');
+      const updatedOrders = orders.map((o: MarketplaceOrder) => 
+        o.id === orderId 
+          ? { ...o, status: 'concluido' as const, completed_by: employeeName }
+          : o
+      );
+      localStorage.setItem('marketplace_orders', JSON.stringify(updatedOrders));
       return { orderId, employeeName };
     },
     onSuccess: () => {
@@ -94,14 +84,20 @@ export default function MarketplaceOrders() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8 text-center">
-          <div className="flex items-center justify-center gap-4 mb-4">
+        <div className="mb-8">
+          <div className="flex items-center justify-center gap-4 mb-6">
             <ShoppingBag className="w-16 h-16 text-purple-400" />
             <h1 className="text-6xl font-bold text-white">PEDIDOS MARKETPLACE</h1>
           </div>
-          <p className="text-2xl text-slate-300">
+          <p className="text-2xl text-slate-300 text-center mb-6">
             {format(new Date(), "dd 'de' MMMM 'de' yyyy - HH:mm", { locale: ptBR })}
           </p>
+          
+          {/* Botões de Ação */}
+          <div className="flex justify-center gap-4">
+            <ManualOrderForm onOrderCreated={refetch} />
+            <IntegrationConfig />
+          </div>
         </div>
 
         {/* Pedidos Ativos */}
