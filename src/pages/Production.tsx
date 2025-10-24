@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Factory, Plus, CheckCircle, Trash2, Edit, Monitor, Download } from "lucide-react";
+import { Factory, Plus, CheckCircle, Trash2, Edit, Monitor, Download, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -140,6 +140,15 @@ export default function Production() {
     if (window.confirm(`Deseja excluir ${selectedOrders.length} ordem(ns) selecionada(s)?`)) {
       deleteSelectedMutation.mutate(selectedOrders);
     }
+  };
+
+  const handleClone = async (order: any) => {
+    const { id, created_date, updated_date, ...clonedData } = order;
+    const clonedOrder = {
+      ...clonedData,
+      order_name: `${clonedData.order_name} (Cópia)`,
+    };
+    await createMutation.mutateAsync(clonedOrder);
   };
 
   return (
@@ -277,6 +286,14 @@ export default function Production() {
                       <TableCell>{order.end_date ? format(new Date(order.end_date), "dd/MM/yyyy") : "-"}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => handleClone(order)}
+                              title="Clonar"
+                            >
+                              <Copy className="w-4 h-4 text-gray-600" />
+                            </Button>
                             <Button 
                               variant="ghost" 
                               size="icon" 

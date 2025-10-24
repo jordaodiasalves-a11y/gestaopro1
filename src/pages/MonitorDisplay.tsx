@@ -190,13 +190,21 @@ export default function MonitorDisplay() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900 p-8">
-      {/* Botão de controles flutuante */}
-      <button
-        onClick={() => setShowControls(!showControls)}
-        className="fixed top-4 right-4 z-50 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg backdrop-blur-sm transition-all"
-      >
-        {showControls ? 'Ocultar Controles' : 'Mostrar Controles'}
-      </button>
+      {/* Botões de controles flutuante */}
+      <div className="fixed top-4 right-4 z-50 flex gap-2">
+        <button
+          onClick={() => playAlert()}
+          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-all"
+        >
+          🔊 Testar Som
+        </button>
+        <button
+          onClick={() => setShowControls(!showControls)}
+          className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg backdrop-blur-sm transition-all"
+        >
+          {showControls ? 'Ocultar Controles' : 'Mostrar Controles'}
+        </button>
+      </div>
 
       {/* Painel de controles */}
       {showControls && (

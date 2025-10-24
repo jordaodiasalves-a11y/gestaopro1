@@ -45,7 +45,7 @@ export default function SaleForm({ products, onSubmit, initialData, onCancel }: 
 
   const selectedProduct = products.find(p => p.id === formData.product_id);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProduct) {
       console.error('Nenhum produto selecionado');
@@ -53,6 +53,14 @@ export default function SaleForm({ products, onSubmit, initialData, onCancel }: 
     }
 
     const quantity = parseInt(String(formData.quantity)) || 1;
+    
+    // Verificar se há estoque suficiente
+    const currentStock = selectedProduct.stock_quantity || 0;
+    if (currentStock < quantity) {
+      alert(`Estoque insuficiente! Disponível: ${currentStock}, Solicitado: ${quantity}`);
+      return;
+    }
+
     const saleData = {
       product_id: formData.product_id,
       product_name: `${selectedProduct.product_name} - ${selectedProduct.variation_name}`,

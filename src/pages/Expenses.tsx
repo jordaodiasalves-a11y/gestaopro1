@@ -75,6 +75,20 @@ export default function Expenses() {
     await createMutation.mutateAsync(clonedData);
   };
 
+  // Categorias fixas cadastradas
+  const [categories, setCategories] = useState<string[]>([
+    "Fixo",
+    "Variável",
+    "Marketing",
+    "Operacional",
+    "Aluguel",
+    "Energia",
+    "Água",
+    "Internet",
+    "Telefone",
+    "Manutenção"
+  ]);
+
   const totalExpenses = expenses.reduce((sum: number, e: any) => sum + (e.value || 0), 0);
   const fixedExpenses = expenses.filter((e: any) => e.category === 'fixo').reduce((sum: number, e: any) => sum + (e.value || 0), 0);
   const variableExpenses = totalExpenses - fixedExpenses;
@@ -235,11 +249,35 @@ export default function Expenses() {
 function ExpenseForm({ initialData, onSubmit, onCancel }: any) {
   const [formData, setFormData] = useState({
     description: initialData?.description || "",
-    category: initialData?.category || "fixo",
+    category: initialData?.category || "Fixo",
     value: initialData?.value || 0,
     payment_date: initialData?.payment_date || new Date().toISOString().split('T')[0],
     notes: initialData?.notes || ""
   });
+  
+  const [newCategory, setNewCategory] = useState("");
+  const [categories, setCategories] = useState<string[]>([
+    "Fixo",
+    "Variável",
+    "Marketing",
+    "Operacional",
+    "Aluguel",
+    "Energia",
+    "Água",
+    "Internet",
+    "Telefone",
+    "Manutenção"
+  ]);
+  
+  const addNewCategory = () => {
+    if (newCategory.trim() && !categories.includes(newCategory.trim())) {
+      const updated = [...categories, newCategory.trim()];
+      setCategories(updated);
+      setFormData({ ...formData, category: newCategory.trim() });
+      setNewCategory("");
+      toast.success("Categoria adicionada!");
+    }
+  };
 
   return (
     <Card className="mb-6">
@@ -259,17 +297,27 @@ function ExpenseForm({ initialData, onSubmit, onCancel }: any) {
             </div>
             <div>
               <Label>Categoria</Label>
-              <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="fixo">Fixo</SelectItem>
-                  <SelectItem value="variavel">Variável</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
-                  <SelectItem value="operacional">Operacional</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50">
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2 mt-2">
+                <Input
+                  placeholder="Nova categoria..."
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addNewCategory())}
+                />
+                <Button type="button" onClick={addNewCategory} size="sm">+</Button>
+              </div>
             </div>
           </div>
 

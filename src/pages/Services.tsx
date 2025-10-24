@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Trash2, Edit, Wrench, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 export default function Services() {
   const queryClient = useQueryClient();
@@ -147,6 +148,7 @@ export default function Services() {
                   <TableHead>Serviço</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Tipo</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Horas</TableHead>
                   <TableHead>Valor Total</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -168,6 +170,11 @@ export default function Services() {
                     <TableCell className="font-medium">{service.service_name}</TableCell>
                     <TableCell>{service.client_name || "-"}</TableCell>
                     <TableCell>{service.service_type}</TableCell>
+                    <TableCell>
+                      <Badge variant={service.status === 'concluido' ? 'default' : service.status === 'em_andamento' ? 'secondary' : 'outline'}>
+                        {service.status === 'em_andamento' ? 'Em Andamento' : service.status === 'concluido' ? 'Concluído' : service.status === 'pendente' ? 'Pendente' : 'Cancelado'}
+                      </Badge>
+                    </TableCell>
                     <TableCell>{service.hours_worked}h</TableCell>
                     <TableCell className="font-semibold text-green-600">
                       R$ {service.total_value?.toFixed(2)}
@@ -224,6 +231,7 @@ function ServiceForm({ initialData, onSubmit, onCancel }: any) {
     hours_worked: initialData?.hours_worked || 0,
     client_name: initialData?.client_name || "",
     service_date: initialData?.service_date || new Date().toISOString().split('T')[0],
+    status: initialData?.status || "em_andamento",
     notes: initialData?.notes || ""
   });
 
@@ -280,7 +288,7 @@ function ServiceForm({ initialData, onSubmit, onCancel }: any) {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-4 gap-4">
             <div>
               <Label>Valor por Hora (R$)</Label>
               <Input
@@ -306,6 +314,20 @@ function ServiceForm({ initialData, onSubmit, onCancel }: any) {
                 value={formData.service_date}
                 onChange={(e) => setFormData({ ...formData, service_date: e.target.value })}
               />
+            </div>
+            <div>
+              <Label>Status</Label>
+              <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white z-50">
+                  <SelectItem value="em_andamento">Em Andamento</SelectItem>
+                  <SelectItem value="concluido">Concluído</SelectItem>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="cancelado">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

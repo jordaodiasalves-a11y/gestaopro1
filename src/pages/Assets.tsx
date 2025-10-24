@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Edit, Truck, Copy } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -15,6 +16,7 @@ export default function Assets() {
   const queryClient = useQueryClient();
   const [editingAsset, setEditingAsset] = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
 
   const { data: assets = [] } = useQuery({
     queryKey: ['assets'],
@@ -57,6 +59,37 @@ export default function Assets() {
     await createMutation.mutateAsync(clonedAsset);
   };
 
+  const deleteSelectedMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      await Promise.all(ids.map(id => base44.entities.Asset.delete(id)));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+      setSelected([]);
+      toast.success("Ativos excluídos com sucesso!");
+    },
+  });
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelected(checked ? assets.map((a: any) => a.id) : []);
+  };
+
+  const handleSelect = (id: string) => {
+    setSelected(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteSelected = () => {
+    if (selected.length === 0) {
+      toast.error("Selecione pelo menos um ativo para excluir");
+      return;
+    }
+    if (window.confirm(`Deseja excluir ${selected.length} ativo(s) selecionado(s)?`)) {
+      deleteSelectedMutation.mutate(selected);
+    }
+  };
+
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -65,14 +98,25 @@ export default function Assets() {
           <p className="text-slate-600">Gerencie os ativos da sua empresa</p>
         </div>
 
-        <div className="flex justify-end mb-6">
-          <Button 
-            onClick={() => { setShowForm(!showForm); setEditingAsset(null); }}
-            className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
-          >
-            <Truck className="w-4 h-4 mr-2" />
-            Novo Ativo
-          </Button>
+        <div className="flex justify-between items-center mb-6">
+          {selected.length > 0 && (
+            <Button 
+              onClick={handleDeleteSelected}
+              variant="destructive"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Excluir Selecionados ({selected.length})
+            </Button>
+          )}
+          <div className="ml-auto">
+            <Button 
+              onClick={() => { setShowForm(!showForm); setEditingAsset(null); }}
+              className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
+            >
+              <Truck className="w-4 h-4 mr-2" />
+              Novo Ativo
+            </Button>
+          </div>
         </div>
 
         {showForm && (
@@ -94,6 +138,12 @@ export default function Assets() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50">
+                  <TableHead className="w-12">
+                    <Checkbox 
+                      checked={selected.length === assets.length && assets.length > 0}
+                      onCheckedChange={handleSelectAll} 
+                    />
+                  </TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Identificação</TableHead>
@@ -104,6 +154,12 @@ export default function Assets() {
               <TableBody>
                 {assets.map((asset: any) => (
                   <TableRow key={asset.id}>
+                    <TableCell>
+                      <Checkbox 
+                        checked={selected.includes(asset.id)} 
+                        onCheckedChange={() => handleSelect(asset.id)} 
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{asset.name}</TableCell>
                     <TableCell>{asset.type}</TableCell>
                     <TableCell>{asset.identifier || "-"}</TableCell>

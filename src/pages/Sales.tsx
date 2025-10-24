@@ -35,11 +35,23 @@ export default function Sales() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Sale.create(data),
+    mutationFn: async (data: any) => {
+      // Dar baixa no estoque do produto
+      const product = products.find((p: any) => p.id === data.product_id);
+      if (product) {
+        const newStock = (product.stock_quantity || 0) - data.quantity;
+        await base44.entities.Product.update(product.id, {
+          ...product,
+          stock_quantity: newStock
+        });
+      }
+      return base44.entities.Sale.create(data);
+    },
     onSuccess: (response) => {
       console.log('Venda criada com sucesso:', response);
       queryClient.invalidateQueries({ queryKey: ['sales'] });
-      toast.success("Venda registrada com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      toast.success("Venda registrada e estoque atualizado!");
     },
     onError: (error: any) => {
       console.error('Erro ao criar venda:', error);
