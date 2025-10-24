@@ -12,6 +12,7 @@ import { ptBR } from "date-fns/locale";
 import { useSoundAlert } from "@/contexts/SoundAlertContext";
 import { ManualOrderForm } from "@/components/marketplace/ManualOrderForm";
 import { IntegrationConfig } from "@/components/marketplace/IntegrationConfig";
+import { SoundAlertControl } from "@/components/SoundAlertControl";
 
 interface MarketplaceOrder {
   id: string;
@@ -27,6 +28,7 @@ interface MarketplaceOrder {
 export default function MarketplaceOrders() {
   const queryClient = useQueryClient();
   const [employeeName, setEmployeeName] = useState("");
+  const [showControls, setShowControls] = useState(false);
   const { playAlert, alertMode } = useSoundAlert();
 
   const { data: orders = [], refetch, dataUpdatedAt } = useQuery({

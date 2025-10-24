@@ -37,12 +37,19 @@ export default function ProductForm({ initialData, onSubmit, onCancel }: Product
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
-      // Parse cost_items se vier como string JSON
+      // Parse cost_items com segurança (pode vir string JSON, array ou vazio)
       if (initialData.cost_items) {
-        const parsedItems = typeof initialData.cost_items === 'string' 
-          ? JSON.parse(initialData.cost_items) 
-          : initialData.cost_items;
-        setCostItems(Array.isArray(parsedItems) ? parsedItems : []);
+        try {
+          const parsedItems = typeof initialData.cost_items === 'string'
+            ? JSON.parse(initialData.cost_items)
+            : initialData.cost_items;
+          setCostItems(Array.isArray(parsedItems) ? parsedItems : []);
+        } catch (e) {
+          console.warn('Falha ao parsear cost_items, usando []', e);
+          setCostItems([]);
+        }
+      } else {
+        setCostItems([]);
       }
     }
   }, [initialData]);
@@ -71,10 +78,13 @@ export default function ProductForm({ initialData, onSubmit, onCancel }: Product
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const safeCostItems = Array.isArray(costItems) ? costItems : [];
     const submitData = {
       ...formData,
-      components: [], // API expects an array
-      cost_items: JSON.stringify(costItems), // Salvar como string JSON
+      components: [], // API espera array
+      // Gravamos em ambos formatos para máxima compatibilidade
+      cost_items: JSON.stringify(safeCostItems),
+      cost_items_array: safeCostItems,
       total_cost,
       profit_margin,
       material_cost: parseFloat(String(formData.material_cost)) || 0,
