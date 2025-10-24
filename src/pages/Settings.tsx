@@ -89,48 +89,66 @@ export default function Settings() {
   };
 
   const exportBackupCSV = () => {
-    const tables = [
-      'base44_Product', 'base44_Sale', 'base44_Customer', 'base44_Supplier',
-      'base44_Expense', 'base44_Service', 'base44_Material', 'base44_Employee',
-      'base44_Asset', 'base44_Production', 'cash_movements', 'marketplace_orders'
-    ];
+    try {
+      const tables = [
+        'base44_Product', 'base44_Sale', 'base44_Customer', 'base44_Supplier',
+        'base44_Expense', 'base44_Service', 'base44_Material', 'base44_Employee',
+        'base44_Asset', 'base44_Production', 'cash_movements', 'marketplace_orders'
+      ];
 
-    let csvContent = '';
-    
-    tables.forEach(tableName => {
-      const data = localStorage.getItem(tableName);
-      if (data) {
-        try {
-          const parsedData = JSON.parse(data);
-          if (Array.isArray(parsedData) && parsedData.length > 0) {
-            csvContent += `\n\n### ${tableName} ###\n`;
-            const headers = Object.keys(parsedData[0]);
-            csvContent += headers.join(',') + '\n';
-            
-            parsedData.forEach(row => {
-              const values = headers.map(header => {
-                const value = row[header];
-                if (value === null || value === undefined) return '';
-                const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
-                return `"${stringValue.replace(/"/g, '""')}"`;
+      let csvContent = 'sep=,\n'; // Adiciona separador para Excel
+      let totalRecords = 0;
+      
+      tables.forEach(tableName => {
+        const data = localStorage.getItem(tableName);
+        if (data) {
+          try {
+            const parsedData = JSON.parse(data);
+            if (Array.isArray(parsedData) && parsedData.length > 0) {
+              csvContent += `\n\n### TABELA: ${tableName} ###\n`;
+              const headers = Object.keys(parsedData[0]);
+              csvContent += headers.join(',') + '\n';
+              
+              parsedData.forEach(row => {
+                const values = headers.map(header => {
+                  const value = row[header];
+                  if (value === null || value === undefined) return '';
+                  const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+                  // Escapar aspas duplas e envolver em aspas
+                  return `"${stringValue.replace(/"/g, '""')}"`;
+                });
+                csvContent += values.join(',') + '\n';
               });
-              csvContent += values.join(',') + '\n';
-            });
+              totalRecords += parsedData.length;
+            }
+          } catch (error) {
+            console.error(`Erro ao processar ${tableName}:`, error);
           }
-        } catch (error) {
-          console.error(`Error parsing ${tableName}:`, error);
         }
-      }
-    });
+      });
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `backup_gestao_pro_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Backup CSV exportado com sucesso!");
+      if (totalRecords === 0) {
+        toast.error("Nenhum dado encontrado para exportar!");
+        return;
+      }
+
+      // Criar Blob com BOM para suporte UTF-8 no Excel
+      const BOM = '\uFEFF';
+      const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup_gestao_pro_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success(`Backup CSV exportado com sucesso! ${totalRecords} registros.`);
+    } catch (error) {
+      console.error('Erro ao exportar CSV:', error);
+      toast.error("Erro ao exportar backup CSV!");
+    }
   };
 
   const importBackup = (event: React.ChangeEvent<HTMLInputElement>) => {

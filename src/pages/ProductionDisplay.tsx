@@ -61,7 +61,7 @@ export default function ProductionDisplay() {
     refetchInterval: 5000,
   });
 
-  const { data: marketplaceOrders = [] } = useQuery({
+  const { data: marketplaceOrders = [], dataUpdatedAt } = useQuery({
     queryKey: ['marketplace-orders-display'],
     queryFn: async () => {
       const stored = localStorage.getItem('marketplace_orders');
@@ -73,6 +73,13 @@ export default function ProductionDisplay() {
     },
     refetchInterval: 5000,
   });
+
+  // Tocar som quando houver novos pedidos marketplace
+  useEffect(() => {
+    if (marketplaceOrders.length > 0) {
+      playAlert();
+    }
+  }, [dataUpdatedAt]);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {

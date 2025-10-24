@@ -77,6 +77,8 @@ export default function Products() {
   });
 
   const handleSubmit = (productData: any) => {
+    console.log('Enviando produto:', productData);
+    console.log('cost_items recebido:', productData.cost_items);
     if (editingProduct?.id) {
       updateMutation.mutate({ id: editingProduct.id, data: productData });
     } else {

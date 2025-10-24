@@ -51,13 +51,15 @@ export function ManualOrderForm({ onOrderCreated }: ManualOrderFormProps) {
 
     // Salvar no localStorage (você deve adaptar para sua API)
     const orders = JSON.parse(localStorage.getItem('marketplace_orders') || '[]');
+    const now = new Date().toISOString();
     const newOrder = {
       id: Date.now().toString(),
       order_number: orderNumber,
       customer_name: customerName,
       items,
       status: 'pendente',
-      created_date: new Date().toISOString(),
+      created_date: now,
+      created_at: now, // Compatibilidade com ambos os campos
       source: 'manual'
     };
     

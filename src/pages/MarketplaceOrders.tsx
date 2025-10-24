@@ -20,16 +20,16 @@ interface MarketplaceOrder {
   items: { product: string; quantity: number; location?: string }[];
   status: "pendente" | "separando" | "concluido";
   created_date: string;
+  created_at?: string;
   completed_by?: string;
 }
 
 export default function MarketplaceOrders() {
   const queryClient = useQueryClient();
   const [employeeName, setEmployeeName] = useState("");
-  const [previousOrderCount, setPreviousOrderCount] = useState(0);
   const { playAlert, alertMode } = useSoundAlert();
 
-  const { data: orders = [], refetch } = useQuery({
+  const { data: orders = [], refetch, dataUpdatedAt } = useQuery({
     queryKey: ['marketplace-orders'],
     queryFn: async () => {
       // Carregar pedidos do localStorage
@@ -44,17 +44,28 @@ export default function MarketplaceOrders() {
 
   // Tocar alerta quando novo pedido chegar
   useEffect(() => {
-    const pendingOrders = orders.filter(o => o.status === "pendente");
-    const newOrdersCount = pendingOrders.length;
+    if (!orders || orders.length === 0) return;
     
-    // Tocar som apenas se houver novos pedidos (mais que antes)
-    if (previousOrderCount > 0 && newOrdersCount > previousOrderCount && alertMode === 'on-order') {
-      console.log('🔔 Novo pedido detectado! Tocando alerta...');
+    const pendingOrders = orders.filter((o: MarketplaceOrder) => o.status === 'pendente');
+    const lastCheckKey = 'marketplace_last_check_time';
+    const lastCheck = localStorage.getItem(lastCheckKey);
+    const lastCheckTime = lastCheck ? new Date(lastCheck).getTime() : 0;
+    
+    // Verifica se há pedidos novos criados após a última checagem
+    const newPendingOrders = pendingOrders.filter((o: MarketplaceOrder) => {
+      const orderTime = new Date(o.created_at || o.created_date).getTime();
+      return orderTime > lastCheckTime;
+    });
+    
+    // Toca som apenas se houver pedidos realmente novos E o modo de alerta estiver ativo
+    if (newPendingOrders.length > 0 && (alertMode === 'on-order' || alertMode === 'interval')) {
+      console.log('🔔 Novos pedidos marketplace detectados:', newPendingOrders.length);
       playAlert();
     }
     
-    setPreviousOrderCount(newOrdersCount);
-  }, [orders, playAlert, alertMode, previousOrderCount]);
+    // Atualiza o timestamp da última checagem
+    localStorage.setItem(lastCheckKey, new Date().toISOString());
+  }, [dataUpdatedAt, playAlert, alertMode]);
 
   const completeOrderMutation = useMutation({
     mutationFn: async ({ orderId, employeeName }: { orderId: string; employeeName: string }) => {
