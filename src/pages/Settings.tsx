@@ -226,6 +226,19 @@ export default function Settings() {
     reader.readAsDataURL(file);
   };
 
+  const handleManualAudioUpload = async (event: React.ChangeEvent<HTMLInputElement>, audioNum: string) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64Audio = reader.result as string;
+      localStorage.setItem(`manual_audio_${audioNum}`, base64Audio);
+      toast.success(`Áudio manual ${audioNum} salvo!`);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const playTestSound = (audioType: string = 'new-order') => {
     const customAudio = localStorage.getItem(`notification_audio_${audioType}`);
     if (customAudio) {
@@ -626,6 +639,56 @@ export default function Settings() {
                   <p className="text-sm text-slate-700">
                     <strong>💡 Dica:</strong> Use arquivos MP3 ou WAV de até 5 segundos. Configure o intervalo dos alertas na página do monitor.
                   </p>
+                </div>
+
+                {/* Áudios Manuais */}
+                <div className="mt-8 pt-6 border-t">
+                  <h3 className="text-xl font-bold mb-2">🎵 Áudios Manuais Personalizados</h3>
+                  <p className="text-sm text-slate-600 mb-4">
+                    Configure até 5 áudios para tocar manualmente nos monitores (ex: "Comparecer à direção", "Atenção à máquina")
+                  </p>
+
+                  {[1, 2, 3, 4, 5].map((num) => (
+                    <div key={num} className="space-y-2 mb-4 p-4 bg-slate-50 rounded-lg">
+                      <Label className="font-semibold">Áudio Manual {num}</Label>
+                      <Input
+                        placeholder={`Nome do áudio (ex: Comparecer à direção)`}
+                        defaultValue={localStorage.getItem(`manual_audio_${num}_label`) || ''}
+                        onChange={(e) => {
+                          localStorage.setItem(`manual_audio_${num}_label`, e.target.value);
+                        }}
+                        className="mb-2"
+                      />
+                      <div className="flex gap-2">
+                        <Input
+                          type="file"
+                          accept="audio/*"
+                          onChange={(e) => handleManualAudioUpload(e, num.toString())}
+                          className="flex-1"
+                        />
+                        <Button 
+                          onClick={() => {
+                            const audio = localStorage.getItem(`manual_audio_${num}`);
+                            if (audio) {
+                              new Audio(audio).play().catch(() => toast.error("Erro ao reproduzir"));
+                            } else {
+                              toast.error("Nenhum áudio configurado");
+                            }
+                          }} 
+                          variant="outline" 
+                          size="icon"
+                        >
+                          <Volume2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="bg-purple-50 p-4 rounded-lg mt-4">
+                    <p className="text-sm text-slate-700">
+                      <strong>💡 Como usar:</strong> Após configurar os áudios, botões START aparecerão nos monitores (Produção e Gestão) para tocar manualmente.
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>

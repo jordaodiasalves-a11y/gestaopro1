@@ -7,6 +7,7 @@ interface SoundAlertContextType {
   alertMode: AlertMode;
   setAlertMode: (mode: AlertMode) => void;
   playAlert: (type?: AlertType) => void;
+  playManualAudio: (audioName: string) => void;
   intervalMinutes: number;
   setIntervalMinutes: (minutes: number) => void;
 }
@@ -72,6 +73,23 @@ export function SoundAlertProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const playManualAudio = (audioName: string) => {
+    const customAudio = localStorage.getItem(`manual_audio_${audioName}`);
+    
+    if (customAudio) {
+      try {
+        const audio = new Audio(customAudio);
+        audio.play().catch((e) => {
+          console.error('Erro ao tocar áudio manual:', e);
+        });
+      } catch (e) {
+        console.error('Erro ao tocar áudio manual:', e);
+      }
+    } else {
+      playBeep();
+    }
+  };
+
   const playBeep = () => {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
@@ -91,7 +109,7 @@ export function SoundAlertProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <SoundAlertContext.Provider value={{ alertMode, setAlertMode, playAlert, intervalMinutes, setIntervalMinutes }}>
+    <SoundAlertContext.Provider value={{ alertMode, setAlertMode, playAlert, playManualAudio, intervalMinutes, setIntervalMinutes }}>
       {children}
     </SoundAlertContext.Provider>
   );

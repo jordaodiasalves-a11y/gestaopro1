@@ -10,11 +10,10 @@ import { SoundAlertControl } from "@/components/SoundAlertControl";
 import { useSoundAlert } from "@/contexts/SoundAlertContext";
 import MarketplaceSlide from "@/components/monitor/MarketplaceSlide";
 
-// Dashboard de Produção para Monitor Externo - ROTAÇÃO AUTOMÁTICA
 export default function ProductionDisplay() {
   const [currentView, setCurrentView] = useState<'orders' | 'materials' | 'products' | 'marketplace'>('orders');
   const [showControls, setShowControls] = useState(false);
-  const { playAlert } = useSoundAlert();
+  const { playAlert, playManualAudio } = useSoundAlert();
 
   // Rotação automática a cada 5 segundos
   useEffect(() => {
@@ -98,8 +97,8 @@ export default function ProductionDisplay() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-8">
-      {/* Botões de controles flutuante */}
-      <div className="fixed top-4 right-4 z-50 flex gap-2">
+      {/* Botões de controle flutuantes */}
+      <div className="fixed top-4 right-4 z-50 flex gap-2 flex-wrap max-w-md">
         <button
           onClick={() => playAlert()}
           className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-all"
@@ -112,6 +111,23 @@ export default function ProductionDisplay() {
         >
           {showControls ? 'Ocultar' : 'Controles'}
         </button>
+        
+        {/* Botões de áudio manual */}
+        {[1, 2, 3, 4, 5].map((num) => {
+          const label = localStorage.getItem(`manual_audio_${num}_label`) || `Áudio ${num}`;
+          const hasAudio = localStorage.getItem(`manual_audio_${num}`);
+          if (!hasAudio) return null;
+          
+          return (
+            <button
+              key={num}
+              onClick={() => playManualAudio(num.toString())}
+              className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-all"
+            >
+              🔊 {label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Painel de controles */}
