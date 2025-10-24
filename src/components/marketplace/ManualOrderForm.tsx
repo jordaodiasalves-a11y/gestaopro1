@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus, Trash2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { addMarketplaceOrder } from '@/utils/marketplaceSync';
 
 interface OrderItem {
   product: string;
@@ -49,22 +50,15 @@ export function ManualOrderForm({ onOrderCreated }: ManualOrderFormProps) {
       return;
     }
 
-    // Salvar no localStorage (você deve adaptar para sua API)
-    const orders = JSON.parse(localStorage.getItem('marketplace_orders') || '[]');
-    const now = new Date().toISOString();
-    const newOrder = {
-      id: Date.now().toString(),
+    // Usar o sistema de sincronização
+    addMarketplaceOrder({
       order_number: orderNumber,
       customer_name: customerName,
       items,
       status: 'pendente',
-      created_date: now,
-      created_at: now, // Compatibilidade com ambos os campos
+      created_date: new Date().toISOString(),
       source: 'manual'
-    };
-    
-    orders.push(newOrder);
-    localStorage.setItem('marketplace_orders', JSON.stringify(orders));
+    });
 
     toast.success('Pedido registrado com sucesso!');
     setIsOpen(false);

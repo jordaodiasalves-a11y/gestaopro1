@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShoppingBag, Clock, CheckCircle2, Package, MapPin, Download } from "lucide-react";
+import { ShoppingBag, Clock, CheckCircle2, Package, MapPin, Download, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useSoundAlert } from "@/contexts/SoundAlertContext";
 import { ManualOrderForm } from "@/components/marketplace/ManualOrderForm";
-import { IntegrationConfig } from "@/components/marketplace/IntegrationConfig";
+import { TestModeControl } from "@/components/marketplace/TestModeControl";
+import { initializeMarketplaceStorage, validateAndNormalizeOrders, updateOrderStatus } from "@/utils/marketplaceSync";
 import { SoundAlertControl } from "@/components/SoundAlertControl";
 
 interface MarketplaceOrder {
@@ -30,22 +31,25 @@ export default function MarketplaceOrders() {
   const queryClient = useQueryClient();
   const [employeeName, setEmployeeName] = useState("");
   const [showControls, setShowControls] = useState(false);
+  const [showTestMode, setShowTestMode] = useState(false);
   const [selectedIntegration, setSelectedIntegration] = useState<string>("bling");
   const { playAlert, alertMode } = useSoundAlert();
+
+  // Inicializar e normalizar pedidos ao carregar
+  useEffect(() => {
+    initializeMarketplaceStorage();
+    validateAndNormalizeOrders();
+  }, []);
 
   const { data: orders = [], refetch, dataUpdatedAt } = useQuery({
     queryKey: ['marketplace-orders'],
     queryFn: async () => {
-      const stored = localStorage.getItem('marketplace_orders');
-      if (stored) {
-        const parsed = JSON.parse(stored) as MarketplaceOrder[];
-        return parsed.sort((a, b) => {
-          const dateA = new Date(a.created_date || a.created_at || '').getTime();
-          const dateB = new Date(b.created_date || b.created_at || '').getTime();
-          return dateB - dateA;
-        });
-      }
-      return [];
+      const normalized = validateAndNormalizeOrders();
+      return normalized.sort((a, b) => {
+        const dateA = new Date(a.created_date || a.created_at || '').getTime();
+        const dateB = new Date(b.created_date || b.created_at || '').getTime();
+        return dateB - dateA;
+      });
     },
     refetchInterval: 5000,
   });
@@ -74,13 +78,10 @@ export default function MarketplaceOrders() {
 
   const completeOrderMutation = useMutation({
     mutationFn: async ({ orderId, employeeName }: { orderId: string; employeeName: string }) => {
-      const orders = JSON.parse(localStorage.getItem('marketplace_orders') || '[]');
-      const updatedOrders = orders.map((o: MarketplaceOrder) => 
-        o.id === orderId 
-          ? { ...o, status: 'concluido' as const, completed_by: employeeName }
-          : o
-      );
-      localStorage.setItem('marketplace_orders', JSON.stringify(updatedOrders));
+      const success = updateOrderStatus(orderId, 'concluido', employeeName);
+      if (!success) {
+        throw new Error('Falha ao atualizar pedido');
+      }
       return { orderId, employeeName };
     },
     onSuccess: () => {
@@ -102,6 +103,7 @@ export default function MarketplaceOrders() {
   const completedOrders = orders.filter(o => o.status === "concluido" || o.status === "concluído");
   
   const handleImportOrders = () => {
+    const mode = localStorage.getItem('marketplace_mode') || 'teste';
     const integrationNames = {
       bling: "Bling",
       tiny: "Tiny",
@@ -113,12 +115,70 @@ export default function MarketplaceOrders() {
     };
     
     const integrationName = integrationNames[selectedIntegration as keyof typeof integrationNames];
-    toast.info(`Importando pedidos de ${integrationName}...`);
     
-    // Simulação de importação - na prática conectaria com APIs das integrações
+    if (mode === 'producao') {
+      toast.error(`Modo Produção: Configure as credenciais de API para ${integrationName} nas Configurações`);
+      return;
+    }
+    
+    // Modo teste: gerar pedidos fake
+    toast.info(`Importando pedidos de teste de ${integrationName}...`);
+    
+    const orders = JSON.parse(localStorage.getItem('marketplace_orders') || '[]');
+    const now = new Date().toISOString();
+    const integrationPrefixes: Record<string, string> = {
+      bling: 'BLG',
+      tiny: 'TNY',
+      shopee: 'SPE',
+      mercadolivre: 'MLD',
+      aliexpress: 'ALI',
+      tiktok: 'TIK',
+      shein: 'SHN'
+    };
+    
+    const fakeOrders = [
+      {
+        id: `${Date.now()}-1`,
+        order_number: `${integrationPrefixes[selectedIntegration]}-${Math.floor(Math.random() * 10000)}`,
+        customer_name: "Cliente Teste A",
+        items: [{ product: "Fliperama Metal", quantity: 1, location: "A-1" }],
+        status: 'pendente' as const,
+        created_date: now,
+        created_at: now,
+        source: selectedIntegration
+      },
+      {
+        id: `${Date.now()}-2`,
+        order_number: `${integrationPrefixes[selectedIntegration]}-${Math.floor(Math.random() * 10000)}`,
+        customer_name: "Cliente Teste B",
+        items: [
+          { product: "Controle Metal", quantity: 2, location: "B-2" },
+          { product: "Protetor", quantity: 5, location: "C-1" }
+        ],
+        status: 'pendente' as const,
+        created_date: now,
+        created_at: now,
+        source: selectedIntegration
+      },
+      {
+        id: `${Date.now()}-3`,
+        order_number: `${integrationPrefixes[selectedIntegration]}-${Math.floor(Math.random() * 10000)}`,
+        customer_name: "Cliente Teste C",
+        items: [{ product: "Comando Fliperama", quantity: 10, location: "D-3" }],
+        status: 'pendente' as const,
+        created_date: now,
+        created_at: now,
+        source: selectedIntegration
+      }
+    ];
+    
+    const allOrders = [...orders, ...fakeOrders];
+    localStorage.setItem('marketplace_orders', JSON.stringify(allOrders));
+    
     setTimeout(() => {
-      toast.success(`3 pedidos importados de ${integrationName}!`);
-    }, 2000);
+      toast.success(`3 pedidos de teste importados de ${integrationName}!`);
+      refetch();
+    }, 1500);
   };
 
   return (
@@ -137,7 +197,16 @@ export default function MarketplaceOrders() {
           {/* Botões de Ação */}
           <div className="flex justify-center gap-4 flex-wrap items-center">
             <ManualOrderForm onOrderCreated={refetch} />
-            <IntegrationConfig />
+            
+            <Button
+              onClick={() => setShowTestMode(!showTestMode)}
+              size="lg"
+              variant={showTestMode ? "default" : "outline"}
+              className="gap-2"
+            >
+              <Settings className="w-5 h-5" />
+              {showTestMode ? 'Ocultar Configurações' : 'Modo Teste/Produção'}
+            </Button>
             
             <div className="flex gap-2 items-center">
               <Select value={selectedIntegration} onValueChange={setSelectedIntegration}>
@@ -165,6 +234,13 @@ export default function MarketplaceOrders() {
               </Button>
             </div>
           </div>
+          
+          {/* Painel de Configuração de Modo */}
+          {showTestMode && (
+            <div className="max-w-2xl mx-auto mt-6">
+              <TestModeControl />
+            </div>
+          )}
         </div>
 
         {/* Pedidos Ativos */}

@@ -4,25 +4,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, ShoppingBag } from "lucide-react";
 import { useSoundAlert } from "@/contexts/SoundAlertContext";
+import { getPendingOrders, initializeMarketplaceStorage } from "@/utils/marketplaceSync";
 
 export default function MarketplaceSlide() {
   const { playAlert, alertMode } = useSoundAlert();
 
+  // Inicializar storage
+  useEffect(() => {
+    initializeMarketplaceStorage();
+  }, []);
+
   const { data: orders = [], dataUpdatedAt } = useQuery({
     queryKey: ["monitor-marketplace-orders"],
     queryFn: async () => {
-      try {
-        const raw = localStorage.getItem("marketplace_orders");
-        const parsed = raw ? JSON.parse(raw) : [];
-        const filtered = Array.isArray(parsed)
-          ? parsed.filter((o: any) => o.status !== "concluido" && o.status !== "concluído")
-          : [];
-        // Ordenar por data de criação (desc)
-        const getTime = (o: any) => new Date(o.created_at || o.created_date || o.createdAt).getTime();
-        return filtered.sort((a: any, b: any) => getTime(b) - getTime(a));
-      } catch {
-        return [] as any[];
-      }
+      const pending = getPendingOrders();
+      // Ordenar por data de criação (mais recentes primeiro)
+      return pending.sort((a, b) => {
+        const dateA = new Date(a.created_at || a.created_date).getTime();
+        const dateB = new Date(b.created_at || b.created_date).getTime();
+        return dateB - dateA;
+      });
     },
     refetchInterval: 5000,
   });

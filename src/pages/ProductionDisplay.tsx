@@ -9,12 +9,18 @@ import { ptBR } from "date-fns/locale";
 import { SoundAlertControl } from "@/components/SoundAlertControl";
 import { useSoundAlert } from "@/contexts/SoundAlertContext";
 import MarketplaceSlide from "@/components/monitor/MarketplaceSlide";
+import { initializeMarketplaceStorage } from "@/utils/marketplaceSync";
 
 export default function ProductionDisplay() {
   const [currentView, setCurrentView] = useState<'orders' | 'materials' | 'products' | 'marketplace'>('orders');
   const [showControls, setShowControls] = useState(false);
   const [selectedManualAudio, setSelectedManualAudio] = useState<string>(() => localStorage.getItem('preferred_alert_manual_audio') || "1");
   const { playAlert, playManualAudio } = useSoundAlert();
+
+  // Inicializar marketplace storage
+  useEffect(() => {
+    initializeMarketplaceStorage();
+  }, []);
 
   // Rotação automática a cada 5 segundos
   useEffect(() => {

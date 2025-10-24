@@ -9,6 +9,7 @@ import { ptBR } from "date-fns/locale";
 import { SoundAlertControl } from "@/components/SoundAlertControl";
 import { useSoundAlert } from "@/contexts/SoundAlertContext";
 import MarketplaceSlide from "@/components/monitor/MarketplaceSlide";
+import { initializeMarketplaceStorage } from "@/utils/marketplaceSync";
 
 type ViewType = 'purchases' | 'birthdays' | 'expenses' | 'reports' | 'top_products' | 'production_alerts' | 'accounts_payable' | 'sales_summary' | 'inventory_status' | 'services_summary' | 'marketplace';
 
@@ -32,6 +33,11 @@ export default function MonitorDisplay() {
     'inventory_status',
     'reports'
   ];
+  
+  // Inicializar marketplace storage
+  useEffect(() => {
+    initializeMarketplaceStorage();
+  }, []);
   // Rotação automática a cada 5 segundos
   useEffect(() => {
     const interval = setInterval(() => {
