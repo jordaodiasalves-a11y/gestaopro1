@@ -9,10 +9,11 @@ import { ptBR } from "date-fns/locale";
 import { SoundAlertControl } from "@/components/SoundAlertControl";
 import { useSoundAlert } from "@/contexts/SoundAlertContext";
 import MarketplaceSlide from "@/components/monitor/MarketplaceSlide";
+import MarketplaceSlideV2 from "@/components/monitor/MarketplaceSlideV2";
 import { initializeMarketplaceStorage } from "@/utils/marketplaceSync";
 
 export default function ProductionDisplay() {
-  const [currentView, setCurrentView] = useState<'orders' | 'materials' | 'products' | 'marketplace'>('orders');
+  const [currentView, setCurrentView] = useState<'orders' | 'materials' | 'products' | 'marketplace' | 'marketplace2'>('orders');
   const [showControls, setShowControls] = useState(false);
   const [selectedManualAudio, setSelectedManualAudio] = useState<string>(() => localStorage.getItem('preferred_alert_manual_audio') || "1");
   const { playAlert, playManualAudio } = useSoundAlert();
@@ -24,7 +25,7 @@ export default function ProductionDisplay() {
 
   // Rotação automática a cada 5 segundos
   useEffect(() => {
-    const views: Array<'orders' | 'materials' | 'products' | 'marketplace'> = ['orders', 'marketplace', 'materials', 'products'];
+    const views: Array<'orders' | 'materials' | 'products' | 'marketplace' | 'marketplace2'> = ['orders', 'marketplace', 'marketplace2', 'materials', 'products'];
     const interval = setInterval(() => {
       setCurrentView(prev => {
         const currentIndex = views.indexOf(prev);
@@ -93,6 +94,7 @@ export default function ProductionDisplay() {
     switch(currentView) {
       case 'orders': return 'ORDENS DE PRODUÇÃO';
       case 'marketplace': return 'PEDIDOS MARKETPLACE';
+      case 'marketplace2': return 'PEDIDOS MARKETPLACE (V2)';
       case 'materials': return 'MATERIAIS PARA COMPRAR';
       case 'products': return 'PRODUTOS PARA REPOR';
     }
@@ -102,6 +104,7 @@ export default function ProductionDisplay() {
     switch(currentView) {
       case 'orders': return <Factory className="w-16 h-16 text-green-400" />;
       case 'marketplace': return <ShoppingBag className="w-16 h-16 text-purple-400" />;
+      case 'marketplace2': return <ShoppingBag className="w-16 h-16 text-pink-400" />;
       case 'materials': return <ShoppingCart className="w-16 h-16 text-orange-400" />;
       case 'products': return <Package className="w-16 h-16 text-yellow-400" />;
     }
@@ -170,7 +173,7 @@ export default function ProductionDisplay() {
             {format(new Date(), "dd 'de' MMMM 'de' yyyy - HH:mm", { locale: ptBR })}
           </p>
           <div className="flex justify-center gap-2 mt-4">
-            {['orders', 'marketplace', 'materials', 'products'].map((view) => (
+            {['orders', 'marketplace', 'marketplace2', 'materials', 'products'].map((view) => (
               <div 
                 key={view}
                 className={`w-3 h-3 rounded-full ${currentView === view ? 'bg-white' : 'bg-white/30'}`}
@@ -279,6 +282,10 @@ export default function ProductionDisplay() {
         {/* Pedidos Marketplace */}
         {currentView === 'marketplace' && (
           <MarketplaceSlide />
+        )}
+
+        {currentView === 'marketplace2' && (
+          <MarketplaceSlideV2 />
         )}
 
         {/* Produtos para Repor */}
