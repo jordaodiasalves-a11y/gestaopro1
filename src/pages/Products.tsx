@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, Printer, Copy } from "lucide-react";
 import { format } from "date-fns";
+import { saveProductMeta, parseCostItems } from "@/utils/productMeta";
 import ProductForm from "../components/products/ProductForm";
 import { toast } from "sonner";
 
@@ -33,7 +34,15 @@ export default function Products() {
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Product.create(data),
-    onSuccess: () => {
+    onSuccess: (created: any, variables: any) => {
+      // Salva meta local (componentes e itens detalhados)
+      const newId = created?.id;
+      if (newId) {
+        saveProductMeta(newId, {
+          components_text: variables?.components_text || '',
+          cost_items: parseCostItems(variables?.cost_items),
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['products'] });
       setShowForm(false);
       setEditingProduct(null);
@@ -46,7 +55,14 @@ export default function Products() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => base44.entities.Product.update(id, data),
-    onSuccess: () => {
+    onSuccess: (_resp: any, variables: { id: string; data: any }) => {
+      // Atualiza meta local
+      if (variables?.id) {
+        saveProductMeta(variables.id, {
+          components_text: variables.data?.components_text || '',
+          cost_items: parseCostItems(variables.data?.cost_items),
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['products'] });
       setShowForm(false);
       setEditingProduct(null);

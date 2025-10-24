@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { getProductMeta } from "@/utils/productMeta";
 
 interface ProductFormProps {
   initialData?: any;
@@ -21,7 +22,7 @@ export default function ProductForm({ initialData, onSubmit, onCancel }: Product
   const [formData, setFormData] = useState({
     product_name: "",
     variation_name: "",
-    components: "",
+    components_text: "",
     material_cost: 0,
     labor_cost: 0,
     other_costs: 0,
@@ -36,19 +37,29 @@ export default function ProductForm({ initialData, onSubmit, onCancel }: Product
 
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData);
-      // Parse cost_items com segurança (pode vir string JSON, array ou vazio)
-      if (initialData.cost_items) {
-        try {
-          const parsedItems = typeof initialData.cost_items === 'string'
-            ? JSON.parse(initialData.cost_items)
-            : initialData.cost_items;
-          setCostItems(Array.isArray(parsedItems) ? parsedItems : []);
-        } catch (e) {
-          console.warn('Falha ao parsear cost_items, usando []', e);
-          setCostItems([]);
+      setFormData(prev => ({
+        ...prev,
+        ...initialData,
+        // Se vier array em "components", preservamos como texto de apoio
+        components_text: (initialData.components_text ?? (typeof initialData.components === 'string' ? initialData.components : '')) || prev.components_text,
+      }));
+
+      // Prioriza cost_items do registro; se ausente, tenta meta local
+      try {
+        let items: any = undefined;
+        if (initialData.cost_items) {
+          items = typeof initialData.cost_items === 'string' ? JSON.parse(initialData.cost_items) : initialData.cost_items;
         }
-      } else {
+        if (!items || !Array.isArray(items)) {
+          const meta = getProductMeta(initialData.id);
+          if (meta?.cost_items) items = meta.cost_items;
+          if (meta?.components_text && !initialData.components_text) {
+            setFormData(prev => ({ ...prev, components_text: meta.components_text! }));
+          }
+        }
+        setCostItems(Array.isArray(items) ? items : []);
+      } catch (e) {
+        console.warn('Falha ao parsear cost_items, usando []', e);
         setCostItems([]);
       }
     }
@@ -81,8 +92,12 @@ export default function ProductForm({ initialData, onSubmit, onCancel }: Product
     const safeCostItems = Array.isArray(costItems) ? costItems : [];
     const submitData = {
       ...formData,
-      components: [], // API espera array
-      // Gravamos em ambos formatos para máxima compatibilidade
+      // Enviar components como array (linhas) e também em texto
+      components: formData.components_text
+        ? formData.components_text.split('\n').map((s) => s.trim()).filter(Boolean)
+        : [],
+      components_text: formData.components_text,
+      // Gravamos os itens detalhados em ambos formatos para máxima compatibilidade
       cost_items: JSON.stringify(safeCostItems),
       cost_items_array: safeCostItems,
       total_cost,
@@ -97,7 +112,6 @@ export default function ProductForm({ initialData, onSubmit, onCancel }: Product
     console.log('Submetendo produto com cost_items:', submitData.cost_items);
     onSubmit(submitData);
   };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid md:grid-cols-2 gap-4">
@@ -136,10 +150,10 @@ export default function ProductForm({ initialData, onSubmit, onCancel }: Product
       <div>
         <Label>Componentes/Descrição</Label>
         <Textarea
-          value={formData.components}
-          onChange={(e) => setFormData({ ...formData, components: e.target.value })}
+          value={formData.components_text}
+          onChange={(e) => setFormData({ ...formData, components_text: e.target.value })}
           rows={3}
-          placeholder="Descreva os componentes ou características..."
+          placeholder="Descreva os componentes ou características... (também será salvo em backup local)"
         />
       </div>
 
@@ -182,6 +196,13 @@ export default function ProductForm({ initialData, onSubmit, onCancel }: Product
             </div>
           </Card>
         ))}
+      </div>
+
+      {/* Caixa adicional de backup local */}
+      <div className="bg-accent/30 border border-accent/60 p-4 rounded-md mb-2">
+        <p className="text-sm text-muted-foreground">
+          Para garantir persistência, os campos acima também são salvos em backup local e reaplicados ao editar o produto.
+        </p>
       </div>
 
       <div className="grid md:grid-cols-3 gap-4">
