@@ -24,8 +24,8 @@ export default function Expenses() {
       const data = await base44.entities.Expense.list();
       // Ordenar localmente por data de criação (mais recente primeiro)
       return data.sort((a: any, b: any) => {
-        const dateA = new Date(a.created_date || a.payment_date).getTime();
-        const dateB = new Date(b.created_date || b.payment_date).getTime();
+        const dateA = new Date(a.created_date || a.expense_date).getTime();
+        const dateB = new Date(b.created_date || b.expense_date).getTime();
         return dateB - dateA;
       });
     },
@@ -90,7 +90,7 @@ export default function Expenses() {
   ]);
 
   const totalExpenses = expenses.reduce((sum: number, e: any) => sum + (e.value || 0), 0);
-  const fixedExpenses = expenses.filter((e: any) => e.category === 'fixo').reduce((sum: number, e: any) => sum + (e.value || 0), 0);
+  const fixedExpenses = expenses.filter((e: any) => e.category?.toLowerCase() === 'fixo').reduce((sum: number, e: any) => sum + (e.value || 0), 0);
   const variableExpenses = totalExpenses - fixedExpenses;
 
   return (
@@ -184,9 +184,9 @@ export default function Expenses() {
               <TableBody>
                 {expenses.map((expense: any) => (
                   <TableRow key={expense.id}>
-                    <TableCell>
+                  <TableCell>
                       <div className="flex flex-col gap-1">
-                        <span>{expense.payment_date ? format(new Date(expense.payment_date), "dd/MM/yyyy") : "-"}</span>
+                        <span>{expense.expense_date ? format(new Date(expense.expense_date), "dd/MM/yyyy") : "-"}</span>
                         {expense.created_date && (
                           <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full w-fit">
                             📅 {format(new Date(expense.created_date), "dd/MM/yy HH:mm")}
@@ -196,7 +196,7 @@ export default function Expenses() {
                     </TableCell>
                     <TableCell className="font-medium">{expense.description}</TableCell>
                     <TableCell>
-                      <Badge variant={expense.category === 'fixo' ? 'default' : 'secondary'}>
+                      <Badge variant={expense.category?.toLowerCase() === 'fixo' ? 'default' : 'secondary'}>
                         {expense.category}
                       </Badge>
                     </TableCell>
@@ -251,7 +251,7 @@ function ExpenseForm({ initialData, onSubmit, onCancel }: any) {
     description: initialData?.description || "",
     category: initialData?.category || "Fixo",
     value: initialData?.value || 0,
-    payment_date: initialData?.payment_date || new Date().toISOString().split('T')[0],
+    expense_date: initialData?.expense_date || new Date().toISOString().split('T')[0],
     notes: initialData?.notes || ""
   });
   
@@ -333,11 +333,11 @@ function ExpenseForm({ initialData, onSubmit, onCancel }: any) {
               />
             </div>
             <div>
-              <Label>Data de Pagamento</Label>
+              <Label>Data da Despesa</Label>
               <Input
                 type="date"
-                value={formData.payment_date}
-                onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
+                value={formData.expense_date}
+                onChange={(e) => setFormData({ ...formData, expense_date: e.target.value })}
               />
             </div>
           </div>
