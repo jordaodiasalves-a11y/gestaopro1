@@ -47,6 +47,23 @@ export default function CashManagement() {
     }
   }, []);
 
+  // Buscar movimentos do localStorage
+  const { data: movements = [] } = useQuery({
+    queryKey: ['cash_movements'],
+    queryFn: () => {
+      try {
+        const stored = localStorage.getItem('cash_movements');
+        const data = stored ? JSON.parse(stored) : [];
+        return data.sort((a: CashMovement, b: CashMovement) => 
+          new Date(b.created_date).getTime() - new Date(a.created_date).getTime()
+        );
+      } catch (e) {
+        console.error('Erro ao carregar movimentos:', e);
+        return [];
+      }
+    },
+  });
+
   const createMovement = useMutation({
     mutationFn: async (data: Omit<CashMovement, 'id' | 'created_date'>) => {
       const stored = localStorage.getItem('cash_movements');
