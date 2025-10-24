@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Settings as SettingsIcon, Download, Upload, Volume2, FileJson, ExternalLink, Moon, Sun, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
+import { base44 } from "@/api/base44Client";
 
 export default function Settings() {
   const [blingConfig, setBlingConfig] = useState({ authType: 'oauth', apiKey: '', clientId: '', clientSecret: '', accessToken: '' });
@@ -88,42 +89,62 @@ export default function Settings() {
     }, 2000);
   };
 
-  const exportBackupCSV = () => {
+  const exportBackupCSV = async () => {
     try {
-      const tables = [
-        'base44_Product', 'base44_Sale', 'base44_Customer', 'base44_Supplier',
-        'base44_Expense', 'base44_Service', 'base44_Material', 'base44_Employee',
-        'base44_Asset', 'base44_Production', 'cash_movements', 'marketplace_orders'
+      toast.info("Coletando dados do sistema...");
+      
+      // Buscar dados reais da API base44
+      const [products, sales, customers, suppliers, expenses, services, materials, employees, assets, productionOrders] = await Promise.all([
+        base44.entities.Product.list().catch(() => []),
+        base44.entities.Sale.list().catch(() => []),
+        base44.entities.Customer.list().catch(() => []),
+        base44.entities.Supplier.list().catch(() => []),
+        base44.entities.Expense.list().catch(() => []),
+        base44.entities.Service.list().catch(() => []),
+        base44.entities.Material.list().catch(() => []),
+        base44.entities.Employee.list().catch(() => []),
+        base44.entities.Asset.list().catch(() => []),
+        base44.entities.ProductionOrder.list().catch(() => []),
+      ]);
+
+      // Dados locais
+      const cashMovements = JSON.parse(localStorage.getItem('cash_movements') || '[]');
+      const marketplaceOrders = JSON.parse(localStorage.getItem('marketplace_orders') || '[]');
+
+      const datasets = [
+        { name: 'Products', data: products },
+        { name: 'Sales', data: sales },
+        { name: 'Customers', data: customers },
+        { name: 'Suppliers', data: suppliers },
+        { name: 'Expenses', data: expenses },
+        { name: 'Services', data: services },
+        { name: 'Materials', data: materials },
+        { name: 'Employees', data: employees },
+        { name: 'Assets', data: assets },
+        { name: 'ProductionOrders', data: productionOrders },
+        { name: 'CashMovements', data: cashMovements },
+        { name: 'MarketplaceOrders', data: marketplaceOrders },
       ];
 
-      let csvContent = 'sep=,\n'; // Adiciona separador para Excel
+      let csvContent = 'sep=,\n'; // Excel separator
       let totalRecords = 0;
-      
-      tables.forEach(tableName => {
-        const data = localStorage.getItem(tableName);
-        if (data) {
-          try {
-            const parsedData = JSON.parse(data);
-            if (Array.isArray(parsedData) && parsedData.length > 0) {
-              csvContent += `\n\n### TABELA: ${tableName} ###\n`;
-              const headers = Object.keys(parsedData[0]);
-              csvContent += headers.join(',') + '\n';
-              
-              parsedData.forEach(row => {
-                const values = headers.map(header => {
-                  const value = row[header];
-                  if (value === null || value === undefined) return '';
-                  const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
-                  // Escapar aspas duplas e envolver em aspas
-                  return `"${stringValue.replace(/"/g, '""')}"`;
-                });
-                csvContent += values.join(',') + '\n';
-              });
-              totalRecords += parsedData.length;
-            }
-          } catch (error) {
-            console.error(`Erro ao processar ${tableName}:`, error);
-          }
+
+      datasets.forEach(({ name, data }) => {
+        if (Array.isArray(data) && data.length > 0) {
+          csvContent += `\n\n### TABELA: ${name} ###\n`;
+          const headers = Object.keys(data[0]);
+          csvContent += headers.map(h => `"${h}"`).join(',') + '\n';
+
+          data.forEach(row => {
+            const values = headers.map(header => {
+              const value = row[header];
+              if (value === null || value === undefined) return '""';
+              const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+              return `"${stringValue.replace(/"/g, '""')}"`;
+            });
+            csvContent += values.join(',') + '\n';
+          });
+          totalRecords += data.length;
         }
       });
 
@@ -132,7 +153,6 @@ export default function Settings() {
         return;
       }
 
-      // Criar Blob com BOM para suporte UTF-8 no Excel
       const BOM = '\uFEFF';
       const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -143,8 +163,8 @@ export default function Settings() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
-      toast.success(`Backup CSV exportado com sucesso! ${totalRecords} registros.`);
+
+      toast.success(`Backup CSV exportado! ${totalRecords} registros de ${datasets.filter(d => d.data.length > 0).length} tabelas.`);
     } catch (error) {
       console.error('Erro ao exportar CSV:', error);
       toast.error("Erro ao exportar backup CSV!");

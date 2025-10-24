@@ -17,12 +17,12 @@ export default function ProductionDisplay() {
 
   // Rotação automática a cada 5 segundos
   useEffect(() => {
+    const views: Array<'orders' | 'materials' | 'products' | 'marketplace'> = ['orders', 'marketplace', 'materials', 'products'];
     const interval = setInterval(() => {
       setCurrentView(prev => {
-        if (prev === 'orders') return 'marketplace';
-        if (prev === 'marketplace') return 'materials';
-        if (prev === 'materials') return 'products';
-        return 'orders';
+        const currentIndex = views.indexOf(prev);
+        const nextIndex = (currentIndex + 1) % views.length;
+        return views[nextIndex];
       });
     }, 5000);
 

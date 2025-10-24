@@ -42,7 +42,7 @@ export default function MonitorDisplay() {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [views]);
 
   const { data: materials = [] } = useQuery({
     queryKey: ['materials-monitor'],
@@ -300,6 +300,12 @@ export default function MonitorDisplay() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {currentView === 'marketplace' && (
+          <div className="space-y-8">
+            <MarketplaceSlide />
           </div>
         )}
 
