@@ -20,7 +20,7 @@ interface MarketplaceOrder {
   order_number: string;
   customer_name: string;
   items: { product: string; quantity: number; location?: string }[];
-  status: "pendente" | "separando" | "concluido";
+  status: "pendente" | "separando" | "concluido" | "concluído";
   created_date: string;
   created_at?: string;
   completed_by?: string;
@@ -36,40 +36,41 @@ export default function MarketplaceOrders() {
   const { data: orders = [], refetch, dataUpdatedAt } = useQuery({
     queryKey: ['marketplace-orders'],
     queryFn: async () => {
-      // Carregar pedidos do localStorage
       const stored = localStorage.getItem('marketplace_orders');
       if (stored) {
-        return JSON.parse(stored) as MarketplaceOrder[];
+        const parsed = JSON.parse(stored) as MarketplaceOrder[];
+        return parsed.sort((a, b) => {
+          const dateA = new Date(a.created_date || a.created_at || '').getTime();
+          const dateB = new Date(b.created_date || b.created_at || '').getTime();
+          return dateB - dateA;
+        });
       }
       return [];
     },
-    refetchInterval: 5000, // Atualiza a cada 5 segundos
+    refetchInterval: 5000,
   });
 
-  // Tocar alerta quando novo pedido chegar
+  // Tocar alerta quando novo pedido chegar (lógica simples e eficiente)
   useEffect(() => {
     if (!orders || orders.length === 0) return;
     
-    const pendingOrders = orders.filter((o: MarketplaceOrder) => o.status === 'pendente');
-    const lastCheckKey = 'marketplace_last_check_time';
+    const pendingOrders = orders.filter(o => o.status === 'pendente');
+    const lastCheckKey = 'marketplace_orders_last_check';
     const lastCheck = localStorage.getItem(lastCheckKey);
     const lastCheckTime = lastCheck ? new Date(lastCheck).getTime() : 0;
     
-    // Verifica se há pedidos novos criados após a última checagem
-    const newPendingOrders = pendingOrders.filter((o: MarketplaceOrder) => {
-      const orderTime = new Date(o.created_at || o.created_date).getTime();
+    const newOrders = pendingOrders.filter(o => {
+      const orderTime = new Date(o.created_date || o.created_at || '').getTime();
       return orderTime > lastCheckTime;
     });
     
-    // Toca som apenas se houver pedidos realmente novos E o modo de alerta estiver ativo
-    if (newPendingOrders.length > 0 && (alertMode === 'on-order' || alertMode === 'interval')) {
-      console.log('🔔 Novos pedidos marketplace detectados:', newPendingOrders.length);
+    if (newOrders.length > 0 && alertMode === 'on-order') {
+      console.log('🔔 Novos pedidos:', newOrders.length);
       playAlert('new-order');
     }
     
-    // Atualiza o timestamp da última checagem
     localStorage.setItem(lastCheckKey, new Date().toISOString());
-  }, [dataUpdatedAt, playAlert, alertMode]);
+  }, [dataUpdatedAt, alertMode, playAlert]);
 
   const completeOrderMutation = useMutation({
     mutationFn: async ({ orderId, employeeName }: { orderId: string; employeeName: string }) => {
@@ -97,8 +98,8 @@ export default function MarketplaceOrders() {
     return configs[status as keyof typeof configs] || configs.pendente;
   };
 
-  const pendingOrders = orders.filter(o => o.status !== "concluido");
-  const completedOrders = orders.filter(o => o.status === "concluido");
+  const pendingOrders = orders.filter(o => o.status !== "concluido" && o.status !== "concluído");
+  const completedOrders = orders.filter(o => o.status === "concluido" || o.status === "concluído");
   
   const handleImportOrders = () => {
     const integrationNames = {

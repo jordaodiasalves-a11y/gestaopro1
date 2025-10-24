@@ -27,22 +27,26 @@ export default function MarketplaceSlide() {
     refetchInterval: 5000,
   });
 
-  // Tocar som somente quando chegarem novos pedidos (com proteção contra duplicação)
+  // Tocar alerta quando novos pedidos chegarem (sincronizado com MarketplaceOrders)
   useEffect(() => {
     if (!orders || orders.length === 0) return;
-    const lastKey = "marketplace_last_check_monitor";
-    const last = localStorage.getItem(lastKey);
-    const lastTime = last ? new Date(last).getTime() : 0;
-    const newOnes = orders.filter((o: any) => {
-      const orderCreated = new Date(o.created_at || o.created_date || o.createdAt).getTime();
-      return orderCreated > lastTime;
+    
+    const lastCheckKey = "marketplace_monitor_last_check";
+    const lastCheck = localStorage.getItem(lastCheckKey);
+    const lastCheckTime = lastCheck ? new Date(lastCheck).getTime() : 0;
+    
+    const newOrders = orders.filter((o: any) => {
+      const orderTime = new Date(o.created_at || o.created_date || o.createdAt || '').getTime();
+      return orderTime > lastCheckTime;
     });
-    if (newOnes.length > 0 && (alertMode === "on-order" || alertMode === "interval")) {
-      console.log("🔔 MarketplaceSlide: Novos pedidos detectados:", newOnes.length);
+    
+    if (newOrders.length > 0 && alertMode === "on-order") {
+      console.log("🔔 Monitor: Novos pedidos marketplace:", newOrders.length);
       playAlert('new-order');
     }
-    localStorage.setItem(lastKey, new Date().toISOString());
-  }, [dataUpdatedAt, playAlert, alertMode]);
+    
+    localStorage.setItem(lastCheckKey, new Date().toISOString());
+  }, [dataUpdatedAt, alertMode, playAlert]);
 
   if (!orders || orders.length === 0) {
     return (

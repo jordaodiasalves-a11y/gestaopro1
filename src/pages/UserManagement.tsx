@@ -47,11 +47,21 @@ export default function UserManagement() {
 
   useEffect(() => {
     loadUsers();
+    // Garantir que o localStorage existe
+    if (!localStorage.getItem('app_users')) {
+      localStorage.setItem('app_users', '[]');
+    }
   }, []);
 
   const loadUsers = () => {
-    const storedUsers = JSON.parse(localStorage.getItem('app_users') || '[]');
-    setUsers(storedUsers);
+    try {
+      const storedUsers = JSON.parse(localStorage.getItem('app_users') || '[]');
+      setUsers(storedUsers);
+    } catch (e) {
+      console.error('Erro ao carregar usuários:', e);
+      localStorage.setItem('app_users', '[]');
+      setUsers([]);
+    }
   };
 
   const handleAddUser = (e: React.FormEvent) => {
