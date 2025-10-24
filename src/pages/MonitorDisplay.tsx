@@ -16,6 +16,7 @@ type ViewType = 'purchases' | 'birthdays' | 'expenses' | 'reports' | 'top_produc
 export default function MonitorDisplay() {
   const [currentView, setCurrentView] = useState<ViewType>("purchases");
   const [showControls, setShowControls] = useState(false);
+  const [selectedManualAudio, setSelectedManualAudio] = useState<string>("1");
   const { playAlert, playManualAudio } = useSoundAlert();
 
   const views: ViewType[] = [
@@ -192,7 +193,7 @@ export default function MonitorDisplay() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900 p-8">
       {/* Botões de controles flutuante */}
-      <div className="fixed top-4 right-4 z-50 flex gap-2 flex-wrap max-w-md">
+      <div className="fixed top-4 right-4 z-50 flex gap-2 flex-wrap max-w-xl">
         <button
           onClick={() => playAlert()}
           className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-all"
@@ -206,22 +207,32 @@ export default function MonitorDisplay() {
           {showControls ? 'Ocultar Controles' : 'Mostrar Controles'}
         </button>
         
-        {/* Botões de áudio manual */}
-        {[1, 2, 3, 4, 5].map((num) => {
-          const label = localStorage.getItem(`manual_audio_${num}_label`) || `Áudio ${num}`;
-          const hasAudio = localStorage.getItem(`manual_audio_${num}`);
-          if (!hasAudio) return null;
-          
-          return (
-            <button
-              key={num}
-              onClick={() => playManualAudio(num.toString())}
-              className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-all"
-            >
-              🔊 {label}
-            </button>
-          );
-        })}
+        {/* Seletor e botão de áudio manual */}
+        <div className="flex gap-2 items-center bg-white/10 backdrop-blur-sm rounded-lg p-2">
+          <select 
+            value={selectedManualAudio}
+            onChange={(e) => setSelectedManualAudio(e.target.value)}
+            className="bg-slate-800 text-white px-3 py-2 rounded border border-white/20 focus:outline-none focus:border-purple-400"
+          >
+            {[1, 2, 3, 4, 5].map((num) => {
+              const label = localStorage.getItem(`manual_audio_${num}_label`) || `Áudio ${num}`;
+              const hasAudio = localStorage.getItem(`manual_audio_${num}`);
+              if (!hasAudio) return null;
+              
+              return (
+                <option key={num} value={num.toString()}>
+                  {label}
+                </option>
+              );
+            })}
+          </select>
+          <button
+            onClick={() => playManualAudio(selectedManualAudio)}
+            className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-all font-semibold"
+          >
+            ▶ START
+          </button>
+        </div>
       </div>
 
       {/* Painel de controles */}

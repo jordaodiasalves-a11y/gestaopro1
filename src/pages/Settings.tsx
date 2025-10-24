@@ -22,6 +22,7 @@ export default function Settings() {
   const [isImporting, setIsImporting] = useState(false);
   const [audioFile, setAudioFile] = useState<string>('');
   const [darkMode, setDarkMode] = useState(false);
+  const [manualAudioLabels, setManualAudioLabels] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const storedBling = localStorage.getItem('blingConfig');
@@ -47,6 +48,13 @@ export default function Settings() {
       setDarkMode(isDark);
       document.documentElement.classList.toggle('dark', isDark);
     }
+    
+    // Carregar labels dos áudios manuais
+    const labels: Record<string, string> = {};
+    [1, 2, 3, 4, 5].forEach(num => {
+      labels[num.toString()] = localStorage.getItem(`manual_audio_${num}_label`) || '';
+    });
+    setManualAudioLabels(labels);
   }, []);
 
   const toggleDarkMode = (enabled: boolean) => {
@@ -126,6 +134,16 @@ export default function Settings() {
         notification_audio_new_order: localStorage.getItem('notification_audio_new-order'),
         notification_audio_order_completed: localStorage.getItem('notification_audio_order-completed'),
         notification_audio_low_stock: localStorage.getItem('notification_audio_low-stock'),
+        manual_audio_1: localStorage.getItem('manual_audio_1'),
+        manual_audio_1_label: localStorage.getItem('manual_audio_1_label'),
+        manual_audio_2: localStorage.getItem('manual_audio_2'),
+        manual_audio_2_label: localStorage.getItem('manual_audio_2_label'),
+        manual_audio_3: localStorage.getItem('manual_audio_3'),
+        manual_audio_3_label: localStorage.getItem('manual_audio_3_label'),
+        manual_audio_4: localStorage.getItem('manual_audio_4'),
+        manual_audio_4_label: localStorage.getItem('manual_audio_4_label'),
+        manual_audio_5: localStorage.getItem('manual_audio_5'),
+        manual_audio_5_label: localStorage.getItem('manual_audio_5_label'),
       };
 
       const datasets = [
@@ -653,9 +671,11 @@ export default function Settings() {
                       <Label className="font-semibold">Áudio Manual {num}</Label>
                       <Input
                         placeholder={`Nome do áudio (ex: Comparecer à direção)`}
-                        defaultValue={localStorage.getItem(`manual_audio_${num}_label`) || ''}
+                        value={manualAudioLabels[num.toString()] || ''}
                         onChange={(e) => {
-                          localStorage.setItem(`manual_audio_${num}_label`, e.target.value);
+                          const newLabel = e.target.value;
+                          setManualAudioLabels(prev => ({ ...prev, [num.toString()]: newLabel }));
+                          localStorage.setItem(`manual_audio_${num}_label`, newLabel);
                         }}
                         className="mb-2"
                       />
