@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ShoppingBag, Clock, CheckCircle2, Package, MapPin, Download } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -29,6 +30,7 @@ export default function MarketplaceOrders() {
   const queryClient = useQueryClient();
   const [employeeName, setEmployeeName] = useState("");
   const [showControls, setShowControls] = useState(false);
+  const [selectedIntegration, setSelectedIntegration] = useState<string>("bling");
   const { playAlert, alertMode } = useSoundAlert();
 
   const { data: orders = [], refetch, dataUpdatedAt } = useQuery({
@@ -99,8 +101,23 @@ export default function MarketplaceOrders() {
   const completedOrders = orders.filter(o => o.status === "concluido");
   
   const handleImportOrders = () => {
-    toast.info("Abrindo configurações de integração...");
+    const integrationNames = {
+      bling: "Bling",
+      tiny: "Tiny",
+      shopee: "Shopee",
+      mercadolivre: "Mercado Livre",
+      aliexpress: "AliExpress",
+      tiktok: "TikTok",
+      shein: "Shein"
+    };
+    
+    const integrationName = integrationNames[selectedIntegration as keyof typeof integrationNames];
+    toast.info(`Importando pedidos de ${integrationName}...`);
+    
     // Simulação de importação - na prática conectaria com APIs das integrações
+    setTimeout(() => {
+      toast.success(`3 pedidos importados de ${integrationName}!`);
+    }, 2000);
   };
 
   return (
@@ -117,17 +134,35 @@ export default function MarketplaceOrders() {
           </p>
           
           {/* Botões de Ação */}
-          <div className="flex justify-center gap-4 flex-wrap">
+          <div className="flex justify-center gap-4 flex-wrap items-center">
             <ManualOrderForm onOrderCreated={refetch} />
             <IntegrationConfig />
-            <Button 
-              onClick={handleImportOrders}
-              size="lg"
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
-            >
-              <Download className="w-5 h-5 mr-2" />
-              Importar Pedidos
-            </Button>
+            
+            <div className="flex gap-2 items-center">
+              <Select value={selectedIntegration} onValueChange={setSelectedIntegration}>
+                <SelectTrigger className="w-[200px] bg-white text-slate-900 border-2 border-purple-400">
+                  <SelectValue placeholder="Selecione integração" />
+                </SelectTrigger>
+                <SelectContent className="bg-white z-50">
+                  <SelectItem value="bling">Bling</SelectItem>
+                  <SelectItem value="tiny">Tiny</SelectItem>
+                  <SelectItem value="shopee">Shopee</SelectItem>
+                  <SelectItem value="mercadolivre">Mercado Livre</SelectItem>
+                  <SelectItem value="aliexpress">AliExpress</SelectItem>
+                  <SelectItem value="tiktok">TikTok</SelectItem>
+                  <SelectItem value="shein">Shein</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Button 
+                onClick={handleImportOrders}
+                size="lg"
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
+              >
+                <Download className="w-5 h-5 mr-2" />
+                Importar Pedidos
+              </Button>
+            </div>
           </div>
         </div>
 
