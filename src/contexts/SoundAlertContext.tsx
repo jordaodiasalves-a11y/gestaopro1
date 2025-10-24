@@ -1,28 +1,30 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 type AlertMode = 'disabled' | 'on-order' | 'interval';
+type AlertType = 'new-order' | 'order-completed' | 'low-stock';
 
 interface SoundAlertContextType {
   alertMode: AlertMode;
   setAlertMode: (mode: AlertMode) => void;
-  playAlert: () => void;
+  playAlert: (type?: AlertType) => void;
+  intervalMinutes: number;
+  setIntervalMinutes: (minutes: number) => void;
 }
 
 const SoundAlertContext = createContext<SoundAlertContextType | undefined>(undefined);
 
 export function SoundAlertProvider({ children }: { children: ReactNode }) {
   const [alertMode, setAlertModeState] = useState<AlertMode>('disabled');
-  const [audio] = useState(() => {
-    const a = new Audio();
-    // Som de alerta simples usando Web Audio API
-    a.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGWi77eefTRAMUKfj8LZjHAY4ktfyy3ksBSR3x/DdkEAKFF606+uoVRQKRp/g8r5sIQUrgs7y2Ik2CBlou+3nn00QDFC...';
-    return a;
-  });
+  const [intervalMinutes, setIntervalMinutesState] = useState<number>(20);
 
   useEffect(() => {
     const stored = localStorage.getItem('alert_mode');
+    const storedInterval = localStorage.getItem('alert_interval_minutes');
     if (stored) {
       setAlertModeState(stored as AlertMode);
+    }
+    if (storedInterval) {
+      setIntervalMinutesState(parseInt(storedInterval));
     }
   }, []);
 
@@ -30,40 +32,66 @@ export function SoundAlertProvider({ children }: { children: ReactNode }) {
     if (alertMode === 'interval') {
       const interval = setInterval(() => {
         playAlert();
-      }, 5 * 60 * 1000); // 5 minutos
+      }, intervalMinutes * 60 * 1000);
 
       return () => clearInterval(interval);
     }
-  }, [alertMode]);
+  }, [alertMode, intervalMinutes]);
 
   const setAlertMode = (mode: AlertMode) => {
     setAlertModeState(mode);
     localStorage.setItem('alert_mode', mode);
   };
 
-  const playAlert = () => {
+  const setIntervalMinutes = (minutes: number) => {
+    setIntervalMinutesState(minutes);
+    localStorage.setItem('alert_interval_minutes', minutes.toString());
+  };
+
+  const playAlert = (type: AlertType = 'new-order') => {
     if (alertMode !== 'disabled') {
-      // Usar um beep simples do navegador
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      oscillator.frequency.value = 800;
-      oscillator.type = 'sine';
-
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.5);
+      // Tenta tocar áudio customizado primeiro
+      const customAudioKey = `notification_audio_${type}`;
+      const customAudio = localStorage.getItem(customAudioKey);
+      
+      if (customAudio) {
+        try {
+          const audio = new Audio(customAudio);
+          audio.play().catch(() => {
+            // Fallback para beep se falhar
+            playBeep();
+          });
+          return;
+        } catch (e) {
+          console.error('Erro ao tocar áudio customizado:', e);
+        }
+      }
+      
+      // Fallback: usar beep simples do navegador
+      playBeep();
     }
   };
 
+  const playBeep = () => {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  };
+
   return (
-    <SoundAlertContext.Provider value={{ alertMode, setAlertMode, playAlert }}>
+    <SoundAlertContext.Provider value={{ alertMode, setAlertMode, playAlert, intervalMinutes, setIntervalMinutes }}>
       {children}
     </SoundAlertContext.Provider>
   );

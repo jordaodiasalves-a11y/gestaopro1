@@ -110,6 +110,23 @@ export default function Settings() {
       // Dados locais
       const cashMovements = JSON.parse(localStorage.getItem('cash_movements') || '[]');
       const marketplaceOrders = JSON.parse(localStorage.getItem('marketplace_orders') || '[]');
+      
+      // Configurações e integrações
+      const configurations = {
+        blingConfig: localStorage.getItem('blingConfig'),
+        tinyConfig: localStorage.getItem('tinyConfig'),
+        shopeeConfig: localStorage.getItem('shopeeConfig'),
+        mercadoLivreConfig: localStorage.getItem('mercadoLivreConfig'),
+        aliExpressConfig: localStorage.getItem('aliExpressConfig'),
+        tiktokConfig: localStorage.getItem('tiktokConfig'),
+        sheinConfig: localStorage.getItem('sheinConfig'),
+        alert_mode: localStorage.getItem('alert_mode'),
+        alert_interval_minutes: localStorage.getItem('alert_interval_minutes'),
+        darkMode: localStorage.getItem('darkMode'),
+        notification_audio_new_order: localStorage.getItem('notification_audio_new-order'),
+        notification_audio_order_completed: localStorage.getItem('notification_audio_order-completed'),
+        notification_audio_low_stock: localStorage.getItem('notification_audio_low-stock'),
+      };
 
       const datasets = [
         { name: 'Products', data: products },
@@ -124,6 +141,7 @@ export default function Settings() {
         { name: 'ProductionOrders', data: productionOrders },
         { name: 'CashMovements', data: cashMovements },
         { name: 'MarketplaceOrders', data: marketplaceOrders },
+        { name: 'Configurations', data: [configurations] },
       ];
 
       let csvContent = 'sep=,\n'; // Excel separator
@@ -195,25 +213,25 @@ export default function Settings() {
     reader.readAsText(file);
   };
 
-  const handleAudioUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAudioUpload = (event: React.ChangeEvent<HTMLInputElement>, audioType: string) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (e) => {
       const audioData = e.target?.result as string;
-      localStorage.setItem('notificationAudio', audioData);
-      setAudioFile(audioData);
-      toast.success("Áudio de notificação carregado!");
+      localStorage.setItem(`notification_audio_${audioType}`, audioData);
+      toast.success(`Áudio "${audioType}" carregado!`);
     };
     reader.readAsDataURL(file);
   };
 
-  const playTestSound = () => {
-    if (audioFile) {
-      const audio = new Audio(audioFile);
+  const playTestSound = (audioType: string = 'new-order') => {
+    const customAudio = localStorage.getItem(`notification_audio_${audioType}`);
+    if (customAudio) {
+      const audio = new Audio(customAudio);
       audio.play().catch(() => toast.error("Erro ao reproduzir áudio"));
-      toast.info("Reproduzindo áudio de teste...");
+      toast.info(`Reproduzindo áudio "${audioType}"...`);
     } else {
       // Som padrão
       const audio = new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZSA0PVqzn77BdGAg+ltrzxnMpBSh+zPLaizsIGGS57OihUhELTKXh8bllHAU2jdXzz3osBR13x/DhjUYMElyx6+yoUxEMTKPg8LxnHgU0itPz0H0vBSp7y/DaizwKGWW57OmnVBIMTKXi8btvJAU6mtrzxH0qBSh5x/DglkcPGGi+7u+vYx0JM5DY89l1KAQtdsrw34tBEBJUpuvxsGUbCDGO0PPVfC0GK3vJ8N+PRA8RX6vo7qxUEAxRqOLwt2cuBzeLz/PWey4FKXnJ8N+RRhEQY6rp7q5cFwg5kdXzzn8wBzF9zfLfkUgSEGKp5u6xZicHNIzS8tN6LwYrf8rx4ZJKExFipubur2IdCDiQ1vPTeC0FLHzJ8OCSTBUSTqXk7rdnJQcyh9Dz1Xw0Ci9+yfDjk08WFFCn5O+3aCUGM4jP89V9NQsufsrw5JVSGBVQp+TwuGgmBzSHz/PXgjkOL4HM8uSWVhsSUKjl8blpJgcyhs/z1oE6DzF/y/LklVgcE1Ko5fG7azEHM4XQ89aAOwwyfsvy5JVaHxVUq+fyrm8xCTN/zfPahD4RM4DL8uaVWyAVVKvn8q9xNAo0f87z24U/EzN/zfLmlV0hFlWr5/KwcjYNNoXO89yGQBU0gM7y55ZfIxZVrOjzsnI4DzaFzvPdhkEXNIHO8uiWYSQXVqzp9LRzOg84g8/z3odBGTSDzvLplmEmF1at6fW1dDsQOIPP8+GIQhk0g87y6pdkJxhXruj1tXU7ETiD0PPiiEMbNILO8uuZZikaV67o9bV1OxQ5g9Dz4olEGzSDzvLrmWgpGleu6PW2dzoWOYPP8+OJRBs0gs7y7JlqKxpXruj1tnc5Fzl90/LtiUYcNILO8u2aaywaWK/o9bh4ORo6fdPy7YpGHTSDzvLumm8sG1iw6PW5eDoaOn3T8u6LRx40g87y75twLRtYsOj1u3g6HT1+0/Lui0gdNILO8vCbcS4cWLDo9b14Ox8+ftPy74xKHzSDzvLxnHMvHFmw6PW+eTwgPn7T8vCMSh81gs3y8p1zLx1asOj1wHo9IT1+0/LwjUsf");
@@ -547,37 +565,66 @@ export default function Settings() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-6">
-                <div>
-                  <Label>Upload de Áudio Personalizado</Label>
+                {/* Novo Pedido */}
+                <div className="space-y-2 border-b pb-4">
+                  <Label className="text-lg font-semibold">🔔 Novo Pedido</Label>
                   <p className="text-sm text-slate-600 mb-2">
-                    Carregue um arquivo de áudio (.mp3, .wav) para usar nas notificações dos monitores
+                    Áudio tocado quando chegar um novo pedido no marketplace
                   </p>
-                  <Input type="file" accept="audio/*" onChange={handleAudioUpload} />
+                  <div className="flex gap-2">
+                    <Input 
+                      type="file" 
+                      accept="audio/*" 
+                      onChange={(e) => handleAudioUpload(e, 'new-order')}
+                      className="flex-1" 
+                    />
+                    <Button onClick={() => playTestSound('new-order')} variant="outline" size="icon">
+                      <Volume2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
 
-                <div className="flex gap-3">
-                  <Button onClick={playTestSound} variant="outline" className="flex-1">
-                    <Volume2 className="w-4 h-4 mr-2" />
-                    Testar Som
-                  </Button>
-                  {audioFile && (
-                    <Button onClick={() => {
-                      const a = document.createElement('a');
-                      a.href = audioFile;
-                      a.download = 'notification_sound.mp3';
-                      a.click();
-                      toast.success("Áudio baixado!");
-                    }} variant="secondary">
-                      <Download className="w-4 h-4 mr-2" />
-                      Baixar Áudio
+                {/* Pedido Concluído */}
+                <div className="space-y-2 border-b pb-4">
+                  <Label className="text-lg font-semibold">✅ Pedido Concluído</Label>
+                  <p className="text-sm text-slate-600 mb-2">
+                    Áudio tocado quando um pedido é marcado como concluído
+                  </p>
+                  <div className="flex gap-2">
+                    <Input 
+                      type="file" 
+                      accept="audio/*" 
+                      onChange={(e) => handleAudioUpload(e, 'order-completed')}
+                      className="flex-1" 
+                    />
+                    <Button onClick={() => playTestSound('order-completed')} variant="outline" size="icon">
+                      <Volume2 className="w-4 h-4" />
                     </Button>
-                  )}
+                  </div>
+                </div>
+
+                {/* Estoque Baixo */}
+                <div className="space-y-2">
+                  <Label className="text-lg font-semibold">⚠️ Estoque Baixo</Label>
+                  <p className="text-sm text-slate-600 mb-2">
+                    Áudio tocado quando detectar produtos com estoque baixo
+                  </p>
+                  <div className="flex gap-2">
+                    <Input 
+                      type="file" 
+                      accept="audio/*" 
+                      onChange={(e) => handleAudioUpload(e, 'low-stock')}
+                      className="flex-1" 
+                    />
+                    <Button onClick={() => playTestSound('low-stock')} variant="outline" size="icon">
+                      <Volume2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <p className="text-sm text-slate-700">
-                    <strong>💡 Dica:</strong> O áudio será reproduzido automaticamente nos monitores externos 
-                    (Monitor Produção, Monitor Gestão, Monitor Produtos) a cada 5 minutos quando houver itens pendentes.
+                    <strong>💡 Dica:</strong> Use arquivos MP3 ou WAV de até 5 segundos. Configure o intervalo dos alertas na página do monitor.
                   </p>
                 </div>
               </CardContent>

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ShoppingBag, Clock, CheckCircle2, Package, MapPin } from "lucide-react";
+import { ShoppingBag, Clock, CheckCircle2, Package, MapPin, Download } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -62,7 +62,7 @@ export default function MarketplaceOrders() {
     // Toca som apenas se houver pedidos realmente novos E o modo de alerta estiver ativo
     if (newPendingOrders.length > 0 && (alertMode === 'on-order' || alertMode === 'interval')) {
       console.log('🔔 Novos pedidos marketplace detectados:', newPendingOrders.length);
-      playAlert();
+      playAlert('new-order');
     }
     
     // Atualiza o timestamp da última checagem
@@ -97,6 +97,11 @@ export default function MarketplaceOrders() {
 
   const pendingOrders = orders.filter(o => o.status !== "concluido");
   const completedOrders = orders.filter(o => o.status === "concluido");
+  
+  const handleImportOrders = () => {
+    toast.info("Abrindo configurações de integração...");
+    // Simulação de importação - na prática conectaria com APIs das integrações
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8">
@@ -112,9 +117,17 @@ export default function MarketplaceOrders() {
           </p>
           
           {/* Botões de Ação */}
-          <div className="flex justify-center gap-4">
+          <div className="flex justify-center gap-4 flex-wrap">
             <ManualOrderForm onOrderCreated={refetch} />
             <IntegrationConfig />
+            <Button 
+              onClick={handleImportOrders}
+              size="lg"
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
+            >
+              <Download className="w-5 h-5 mr-2" />
+              Importar Pedidos
+            </Button>
           </div>
         </div>
 

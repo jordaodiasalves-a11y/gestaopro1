@@ -34,7 +34,7 @@ export default function MarketplaceSlide() {
     });
     if (newOnes.length > 0 && (alertMode === "on-order" || alertMode === "interval")) {
       console.log("🔔 MarketplaceSlide: Novos pedidos detectados:", newOnes.length);
-      playAlert();
+      playAlert('new-order');
     }
     localStorage.setItem(lastKey, new Date().toISOString());
   }, [dataUpdatedAt, playAlert, alertMode]);
