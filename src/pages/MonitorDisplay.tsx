@@ -3,13 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Cake, AlertCircle, TrendingUp, DollarSign, Package, BarChart2, Wrench, Factory as FactoryIcon } from "lucide-react";
+import { ShoppingCart, Cake, AlertCircle, TrendingUp, DollarSign, Package, BarChart2, Wrench, Factory as FactoryIcon, ShoppingBag } from "lucide-react";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { SoundAlertControl } from "@/components/SoundAlertControl";
 import { useSoundAlert } from "@/contexts/SoundAlertContext";
+import MarketplaceSlide from "@/components/monitor/MarketplaceSlide";
 
-type ViewType = 'purchases' | 'birthdays' | 'expenses' | 'reports' | 'top_products' | 'production_alerts' | 'accounts_payable' | 'sales_summary' | 'inventory_status' | 'services_summary';
+type ViewType = 'purchases' | 'birthdays' | 'expenses' | 'reports' | 'top_products' | 'production_alerts' | 'accounts_payable' | 'sales_summary' | 'inventory_status' | 'services_summary' | 'marketplace';
 
 // Monitor Externo GESTÃO - Rotação Automática com 10 telas
 export default function MonitorDisplay() {
@@ -20,6 +21,7 @@ export default function MonitorDisplay() {
   const views: ViewType[] = [
     'purchases',
     'production_alerts',
+    'marketplace',
     'birthdays',
     'expenses',
     'accounts_payable',
@@ -29,7 +31,6 @@ export default function MonitorDisplay() {
     'inventory_status',
     'reports'
   ];
-
   // Rotação automática a cada 5 segundos
   useEffect(() => {
     const interval = setInterval(() => {
@@ -161,33 +162,33 @@ export default function MonitorDisplay() {
   const getViewTitle = () => {
     switch(currentView) {
       case 'purchases': return 'LISTA DE COMPRAS';
+      case 'production_alerts': return 'ALERTAS DE PRODUÇÃO';
+      case 'marketplace': return 'PEDIDOS MARKETPLACE';
       case 'birthdays': return 'ANIVERSARIANTES';
       case 'expenses': return 'PAGAMENTOS URGENTES';
       case 'reports': return 'RESUMO FINANCEIRO';
       case 'top_products': return 'PRODUTOS MAIS VENDIDOS';
-      case 'production_alerts': return 'ALERTAS DE PRODUÇÃO';
       case 'accounts_payable': return 'CONTAS A PAGAR';
       case 'sales_summary': return 'RESUMO DE VENDAS';
       case 'inventory_status': return 'STATUS DE ESTOQUE COMPLETO';
       case 'services_summary': return 'RESUMO DE SERVIÇOS';
     }
   };
-
   const getViewIcon = () => {
     switch(currentView) {
       case 'purchases': return <ShoppingCart className="w-16 h-16 text-orange-400" />;
+      case 'production_alerts': return <FactoryIcon className="w-16 h-16 text-purple-400" />;
+      case 'marketplace': return <ShoppingBag className="w-16 h-16 text-purple-400" />;
       case 'birthdays': return <Cake className="w-16 h-16 text-pink-400" />;
       case 'expenses': return <AlertCircle className="w-16 h-16 text-red-400" />;
       case 'reports': return <TrendingUp className="w-16 h-16 text-green-400" />;
       case 'top_products': return <BarChart2 className="w-16 h-16 text-blue-400" />;
-      case 'production_alerts': return <FactoryIcon className="w-16 h-16 text-purple-400" />;
       case 'accounts_payable': return <DollarSign className="w-16 h-16 text-yellow-400" />;
       case 'sales_summary': return <TrendingUp className="w-16 h-16 text-emerald-400" />;
       case 'inventory_status': return <Package className="w-16 h-16 text-cyan-400" />;
       case 'services_summary': return <Wrench className="w-16 h-16 text-indigo-400" />;
     }
   };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900 p-8">
       {/* Botões de controles flutuante */}
