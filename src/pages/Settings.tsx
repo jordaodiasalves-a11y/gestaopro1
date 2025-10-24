@@ -6,24 +6,54 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Settings as SettingsIcon, Download, Upload, Volume2, FileJson, ExternalLink } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Settings as SettingsIcon, Download, Upload, Volume2, FileJson, ExternalLink, Moon, Sun, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Settings() {
   const [blingConfig, setBlingConfig] = useState({ authType: 'oauth', apiKey: '', clientId: '', clientSecret: '', accessToken: '' });
   const [tinyConfig, setTinyConfig] = useState({ authType: 'oauth', apiKey: '', clientId: '', clientSecret: '', accessToken: '' });
+  const [shopeeConfig, setShopeeConfig] = useState({ authType: 'oauth', apiKey: '', clientId: '', clientSecret: '', accessToken: '' });
+  const [mercadoLivreConfig, setMercadoLivreConfig] = useState({ authType: 'oauth', apiKey: '', clientId: '', clientSecret: '', accessToken: '' });
+  const [aliExpressConfig, setAliExpressConfig] = useState({ authType: 'oauth', apiKey: '', clientId: '', clientSecret: '', accessToken: '' });
+  const [tiktokConfig, setTiktokConfig] = useState({ authType: 'oauth', apiKey: '', clientId: '', clientSecret: '', accessToken: '' });
+  const [sheinConfig, setSheinConfig] = useState({ authType: 'oauth', apiKey: '', clientId: '', clientSecret: '', accessToken: '' });
   const [isImporting, setIsImporting] = useState(false);
   const [audioFile, setAudioFile] = useState<string>('');
+  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     const storedBling = localStorage.getItem('blingConfig');
     const storedTiny = localStorage.getItem('tinyConfig');
+    const storedShopee = localStorage.getItem('shopeeConfig');
+    const storedML = localStorage.getItem('mercadoLivreConfig');
+    const storedAliExpress = localStorage.getItem('aliExpressConfig');
+    const storedTiktok = localStorage.getItem('tiktokConfig');
+    const storedShein = localStorage.getItem('sheinConfig');
     const storedAudio = localStorage.getItem('notificationAudio');
+    const storedTheme = localStorage.getItem('darkMode');
     
     if (storedBling) setBlingConfig(JSON.parse(storedBling));
     if (storedTiny) setTinyConfig(JSON.parse(storedTiny));
+    if (storedShopee) setShopeeConfig(JSON.parse(storedShopee));
+    if (storedML) setMercadoLivreConfig(JSON.parse(storedML));
+    if (storedAliExpress) setAliExpressConfig(JSON.parse(storedAliExpress));
+    if (storedTiktok) setTiktokConfig(JSON.parse(storedTiktok));
+    if (storedShein) setSheinConfig(JSON.parse(storedShein));
     if (storedAudio) setAudioFile(storedAudio);
+    if (storedTheme) {
+      const isDark = JSON.parse(storedTheme);
+      setDarkMode(isDark);
+      document.documentElement.classList.toggle('dark', isDark);
+    }
   }, []);
+
+  const toggleDarkMode = (enabled: boolean) => {
+    setDarkMode(enabled);
+    localStorage.setItem('darkMode', JSON.stringify(enabled));
+    document.documentElement.classList.toggle('dark', enabled);
+    toast.success(`Modo ${enabled ? 'escuro' : 'claro'} ativado!`);
+  };
 
   const saveBlingConfig = () => {
     localStorage.setItem('blingConfig', JSON.stringify(blingConfig));
@@ -35,14 +65,15 @@ export default function Settings() {
     toast.success("Configuração Tiny salva!");
   };
 
-  const startOAuthFlow = (platform: string) => {
+  const saveMarketplaceConfig = (platform: string, config: any) => {
+    localStorage.setItem(`${platform}Config`, JSON.stringify(config));
+    toast.success(`Configuração ${platform} salva!`);
+  };
+
+  const startOAuthFlow = (platform: string, config: any, setConfig: any) => {
     toast.info(`Iniciando autenticação OAuth 2.0 para ${platform}...`);
     setTimeout(() => {
-      if (platform === 'Bling') {
-        setBlingConfig({ ...blingConfig, accessToken: 'mock_token_bling_' + Date.now() });
-      } else {
-        setTinyConfig({ ...tinyConfig, accessToken: 'mock_token_tiny_' + Date.now() });
-      }
+      setConfig({ ...config, accessToken: `mock_token_${platform.toLowerCase()}_${Date.now()}` });
       toast.success(`Autenticado com sucesso no ${platform}!`);
     }, 1500);
   };
@@ -57,31 +88,49 @@ export default function Settings() {
     }, 2000);
   };
 
-  const exportBackup = () => {
-    const data = {
-      products: localStorage.getItem('base44_Product') || '[]',
-      sales: localStorage.getItem('base44_Sale') || '[]',
-      customers: localStorage.getItem('base44_Customer') || '[]',
-      suppliers: localStorage.getItem('base44_Supplier') || '[]',
-      expenses: localStorage.getItem('base44_Expense') || '[]',
-      services: localStorage.getItem('base44_Service') || '[]',
-      materials: localStorage.getItem('base44_Material') || '[]',
-      employees: localStorage.getItem('base44_Employee') || '[]',
-      assets: localStorage.getItem('base44_Asset') || '[]',
-      production: localStorage.getItem('base44_Production') || '[]',
-      cash_movements: localStorage.getItem('cash_movements') || '[]',
-      marketplace_orders: localStorage.getItem('marketplace_orders') || '[]',
-      exportDate: new Date().toISOString(),
-    };
+  const exportBackupCSV = () => {
+    const tables = [
+      'base44_Product', 'base44_Sale', 'base44_Customer', 'base44_Supplier',
+      'base44_Expense', 'base44_Service', 'base44_Material', 'base44_Employee',
+      'base44_Asset', 'base44_Production', 'cash_movements', 'marketplace_orders'
+    ];
 
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    let csvContent = '';
+    
+    tables.forEach(tableName => {
+      const data = localStorage.getItem(tableName);
+      if (data) {
+        try {
+          const parsedData = JSON.parse(data);
+          if (Array.isArray(parsedData) && parsedData.length > 0) {
+            csvContent += `\n\n### ${tableName} ###\n`;
+            const headers = Object.keys(parsedData[0]);
+            csvContent += headers.join(',') + '\n';
+            
+            parsedData.forEach(row => {
+              const values = headers.map(header => {
+                const value = row[header];
+                if (value === null || value === undefined) return '';
+                const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+                return `"${stringValue.replace(/"/g, '""')}"`;
+              });
+              csvContent += values.join(',') + '\n';
+            });
+          }
+        } catch (error) {
+          console.error(`Error parsing ${tableName}:`, error);
+        }
+      }
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `backup_gestao_pro_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `backup_gestao_pro_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Backup exportado com sucesso!");
+    toast.success("Backup CSV exportado com sucesso!");
   };
 
   const importBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -151,9 +200,10 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="integrations" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-1/2">
+          <TabsList className="grid w-full grid-cols-4 lg:w-2/3">
             <TabsTrigger value="integrations">Integrações</TabsTrigger>
             <TabsTrigger value="notifications">Notificações</TabsTrigger>
+            <TabsTrigger value="appearance">Aparência</TabsTrigger>
             <TabsTrigger value="backup">Backup</TabsTrigger>
           </TabsList>
 
@@ -194,7 +244,7 @@ export default function Settings() {
                         <Label>Client Secret</Label>
                         <Input type="password" value={blingConfig.clientSecret} onChange={(e) => setBlingConfig({ ...blingConfig, clientSecret: e.target.value })} />
                       </div>
-                      <Button onClick={() => startOAuthFlow('Bling')} className="w-full" variant="outline">
+                      <Button onClick={() => startOAuthFlow('Bling', blingConfig, setBlingConfig)} className="w-full" variant="outline">
                         <ExternalLink className="w-4 h-4 mr-2" />
                         Autorizar via OAuth 2.0
                       </Button>
@@ -250,7 +300,7 @@ export default function Settings() {
                         <Label>Client Secret</Label>
                         <Input type="password" value={tinyConfig.clientSecret} onChange={(e) => setTinyConfig({ ...tinyConfig, clientSecret: e.target.value })} />
                       </div>
-                      <Button onClick={() => startOAuthFlow('Tiny')} className="w-full" variant="outline">
+                      <Button onClick={() => startOAuthFlow('Tiny', tinyConfig, setTinyConfig)} className="w-full" variant="outline">
                         <ExternalLink className="w-4 h-4 mr-2" />
                         Autorizar via OAuth 2.0
                       </Button>
@@ -268,6 +318,181 @@ export default function Settings() {
                       <Download className="w-4 h-4 mr-2" />
                       Importar Pedidos
                     </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Shopee */}
+              <Card className="shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Integração Shopee</CardTitle>
+                    {isConfigured(shopeeConfig) && <Badge className="bg-green-500">Conectado</Badge>}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <div>
+                    <Label>Tipo de Autenticação</Label>
+                    <Select value={shopeeConfig.authType} onValueChange={(v) => setShopeeConfig({ ...shopeeConfig, authType: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectItem value="oauth">OAuth 2.0</SelectItem>
+                        <SelectItem value="credentials">API Key / Credenciais</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {shopeeConfig.authType === 'oauth' ? (
+                    <>
+                      <div><Label>Client ID</Label><Input value={shopeeConfig.clientId} onChange={(e) => setShopeeConfig({ ...shopeeConfig, clientId: e.target.value })} /></div>
+                      <div><Label>Client Secret</Label><Input type="password" value={shopeeConfig.clientSecret} onChange={(e) => setShopeeConfig({ ...shopeeConfig, clientSecret: e.target.value })} /></div>
+                      <Button onClick={() => startOAuthFlow('Shopee', shopeeConfig, setShopeeConfig)} className="w-full" variant="outline"><ExternalLink className="w-4 h-4 mr-2" />Autorizar via OAuth 2.0</Button>
+                    </>
+                  ) : (
+                    <div><Label>API Key</Label><Input value={shopeeConfig.apiKey} onChange={(e) => setShopeeConfig({ ...shopeeConfig, apiKey: e.target.value })} /></div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button onClick={() => saveMarketplaceConfig('shopee', shopeeConfig)} className="flex-1">Salvar Configuração</Button>
+                    <Button onClick={() => importOrders('Shopee')} disabled={!isConfigured(shopeeConfig) || isImporting} variant="secondary"><Download className="w-4 h-4 mr-2" />Importar Pedidos</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Mercado Livre */}
+              <Card className="shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Integração Mercado Livre</CardTitle>
+                    {isConfigured(mercadoLivreConfig) && <Badge className="bg-green-500">Conectado</Badge>}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <div>
+                    <Label>Tipo de Autenticação</Label>
+                    <Select value={mercadoLivreConfig.authType} onValueChange={(v) => setMercadoLivreConfig({ ...mercadoLivreConfig, authType: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectItem value="oauth">OAuth 2.0</SelectItem>
+                        <SelectItem value="credentials">API Key / Credenciais</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {mercadoLivreConfig.authType === 'oauth' ? (
+                    <>
+                      <div><Label>Client ID</Label><Input value={mercadoLivreConfig.clientId} onChange={(e) => setMercadoLivreConfig({ ...mercadoLivreConfig, clientId: e.target.value })} /></div>
+                      <div><Label>Client Secret</Label><Input type="password" value={mercadoLivreConfig.clientSecret} onChange={(e) => setMercadoLivreConfig({ ...mercadoLivreConfig, clientSecret: e.target.value })} /></div>
+                      <Button onClick={() => startOAuthFlow('Mercado Livre', mercadoLivreConfig, setMercadoLivreConfig)} className="w-full" variant="outline"><ExternalLink className="w-4 h-4 mr-2" />Autorizar via OAuth 2.0</Button>
+                    </>
+                  ) : (
+                    <div><Label>API Key</Label><Input value={mercadoLivreConfig.apiKey} onChange={(e) => setMercadoLivreConfig({ ...mercadoLivreConfig, apiKey: e.target.value })} /></div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button onClick={() => saveMarketplaceConfig('mercadoLivre', mercadoLivreConfig)} className="flex-1">Salvar Configuração</Button>
+                    <Button onClick={() => importOrders('Mercado Livre')} disabled={!isConfigured(mercadoLivreConfig) || isImporting} variant="secondary"><Download className="w-4 h-4 mr-2" />Importar Pedidos</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* AliExpress */}
+              <Card className="shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-red-500 to-red-600 text-white">
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Integração AliExpress Seller</CardTitle>
+                    {isConfigured(aliExpressConfig) && <Badge className="bg-green-500">Conectado</Badge>}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <div>
+                    <Label>Tipo de Autenticação</Label>
+                    <Select value={aliExpressConfig.authType} onValueChange={(v) => setAliExpressConfig({ ...aliExpressConfig, authType: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectItem value="oauth">OAuth 2.0</SelectItem>
+                        <SelectItem value="credentials">API Key / Credenciais</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {aliExpressConfig.authType === 'oauth' ? (
+                    <>
+                      <div><Label>App Key</Label><Input value={aliExpressConfig.clientId} onChange={(e) => setAliExpressConfig({ ...aliExpressConfig, clientId: e.target.value })} /></div>
+                      <div><Label>App Secret</Label><Input type="password" value={aliExpressConfig.clientSecret} onChange={(e) => setAliExpressConfig({ ...aliExpressConfig, clientSecret: e.target.value })} /></div>
+                      <Button onClick={() => startOAuthFlow('AliExpress', aliExpressConfig, setAliExpressConfig)} className="w-full" variant="outline"><ExternalLink className="w-4 h-4 mr-2" />Autorizar via OAuth 2.0</Button>
+                    </>
+                  ) : (
+                    <div><Label>API Key</Label><Input value={aliExpressConfig.apiKey} onChange={(e) => setAliExpressConfig({ ...aliExpressConfig, apiKey: e.target.value })} /></div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button onClick={() => saveMarketplaceConfig('aliExpress', aliExpressConfig)} className="flex-1">Salvar Configuração</Button>
+                    <Button onClick={() => importOrders('AliExpress')} disabled={!isConfigured(aliExpressConfig) || isImporting} variant="secondary"><Download className="w-4 h-4 mr-2" />Importar Pedidos</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* TikTok Shop */}
+              <Card className="shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-black to-gray-800 text-white">
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Integração TikTok Seller</CardTitle>
+                    {isConfigured(tiktokConfig) && <Badge className="bg-green-500">Conectado</Badge>}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <div>
+                    <Label>Tipo de Autenticação</Label>
+                    <Select value={tiktokConfig.authType} onValueChange={(v) => setTiktokConfig({ ...tiktokConfig, authType: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectItem value="oauth">OAuth 2.0</SelectItem>
+                        <SelectItem value="credentials">API Key / Credenciais</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {tiktokConfig.authType === 'oauth' ? (
+                    <>
+                      <div><Label>App Key</Label><Input value={tiktokConfig.clientId} onChange={(e) => setTiktokConfig({ ...tiktokConfig, clientId: e.target.value })} /></div>
+                      <div><Label>App Secret</Label><Input type="password" value={tiktokConfig.clientSecret} onChange={(e) => setTiktokConfig({ ...tiktokConfig, clientSecret: e.target.value })} /></div>
+                      <Button onClick={() => startOAuthFlow('TikTok', tiktokConfig, setTiktokConfig)} className="w-full" variant="outline"><ExternalLink className="w-4 h-4 mr-2" />Autorizar via OAuth 2.0</Button>
+                    </>
+                  ) : (
+                    <div><Label>API Key</Label><Input value={tiktokConfig.apiKey} onChange={(e) => setTiktokConfig({ ...tiktokConfig, apiKey: e.target.value })} /></div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button onClick={() => saveMarketplaceConfig('tiktok', tiktokConfig)} className="flex-1">Salvar Configuração</Button>
+                    <Button onClick={() => importOrders('TikTok')} disabled={!isConfigured(tiktokConfig) || isImporting} variant="secondary"><Download className="w-4 h-4 mr-2" />Importar Pedidos</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Shein */}
+              <Card className="shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-pink-500 to-pink-600 text-white">
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Integração Shein</CardTitle>
+                    {isConfigured(sheinConfig) && <Badge className="bg-green-500">Conectado</Badge>}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <div>
+                    <Label>Tipo de Autenticação</Label>
+                    <Select value={sheinConfig.authType} onValueChange={(v) => setSheinConfig({ ...sheinConfig, authType: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectItem value="oauth">OAuth 2.0</SelectItem>
+                        <SelectItem value="credentials">API Key / Credenciais</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {sheinConfig.authType === 'oauth' ? (
+                    <>
+                      <div><Label>App Key</Label><Input value={sheinConfig.clientId} onChange={(e) => setSheinConfig({ ...sheinConfig, clientId: e.target.value })} /></div>
+                      <div><Label>App Secret</Label><Input type="password" value={sheinConfig.clientSecret} onChange={(e) => setSheinConfig({ ...sheinConfig, clientSecret: e.target.value })} /></div>
+                      <Button onClick={() => startOAuthFlow('Shein', sheinConfig, setSheinConfig)} className="w-full" variant="outline"><ExternalLink className="w-4 h-4 mr-2" />Autorizar via OAuth 2.0</Button>
+                    </>
+                  ) : (
+                    <div><Label>API Key</Label><Input value={sheinConfig.apiKey} onChange={(e) => setSheinConfig({ ...sheinConfig, apiKey: e.target.value })} /></div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button onClick={() => saveMarketplaceConfig('shein', sheinConfig)} className="flex-1">Salvar Configuração</Button>
+                    <Button onClick={() => importOrders('Shein')} disabled={!isConfigured(sheinConfig) || isImporting} variant="secondary"><Download className="w-4 h-4 mr-2" />Importar Pedidos</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -321,6 +546,39 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
+          {/* Aparência */}
+          <TabsContent value="appearance">
+            <Card className="shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+                <CardTitle className="flex items-center gap-2">
+                  {darkMode ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
+                  Personalização da Interface
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-semibold">Modo Escuro</Label>
+                    <p className="text-sm text-slate-600 mt-1">
+                      Ative o modo escuro para reduzir o cansaço visual
+                    </p>
+                  </div>
+                  <Switch
+                    checked={darkMode}
+                    onCheckedChange={toggleDarkMode}
+                  />
+                </div>
+                
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-slate-700">
+                    <strong>💡 Dica:</strong> O modo {darkMode ? 'escuro' : 'claro'} está ativo. 
+                    {darkMode ? ' Cores mais suaves para trabalhar à noite.' : ' Cores vibrantes para trabalhar durante o dia.'}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Backup */}
           <TabsContent value="backup">
             <div className="grid lg:grid-cols-2 gap-6">
@@ -333,7 +591,7 @@ export default function Settings() {
                 </CardHeader>
                 <CardContent className="p-6 space-y-4">
                   <p className="text-slate-600">
-                    Exporte todos os dados do sistema em formato JSON para backup de segurança.
+                    Exporte todos os dados do sistema em formato CSV/Excel compatível com MySQL e outros bancos de dados.
                   </p>
                   <div className="bg-orange-50 p-4 rounded-lg space-y-2">
                     <p className="text-sm font-semibold text-slate-900">Dados incluídos:</p>
@@ -346,10 +604,13 @@ export default function Settings() {
                       <li>Funcionários e ativos</li>
                       <li>Produção e pedidos marketplace</li>
                     </ul>
+                    <p className="text-sm text-orange-700 font-semibold mt-2">
+                      ⚠️ Formato CSV/Excel compatível com MySQL, PostgreSQL e outros bancos
+                    </p>
                   </div>
-                  <Button onClick={exportBackup} className="w-full bg-orange-600 hover:bg-orange-700">
-                    <FileJson className="w-4 h-4 mr-2" />
-                    Exportar Backup Completo
+                  <Button onClick={exportBackupCSV} className="w-full bg-orange-600 hover:bg-orange-700">
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                    Exportar Backup CSV/Excel
                   </Button>
                 </CardContent>
               </Card>

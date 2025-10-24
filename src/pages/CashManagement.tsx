@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Wallet, TrendingUp, TrendingDown, Filter, Upload } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Wallet, TrendingUp, TrendingDown, Filter, Upload, Copy, Trash2, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -26,7 +27,10 @@ interface CashMovement {
 export default function CashManagement() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [movementType, setMovementType] = useState<'entrada' | 'saida'>('entrada');
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     value: 0,
     category: 'Outros',
@@ -53,22 +57,42 @@ export default function CashManagement() {
       const stored = localStorage.getItem('cash_movements');
       const existingMovements = stored ? JSON.parse(stored) : [];
       
-      const newMovement: CashMovement = {
-        ...data,
-        id: Date.now().toString(),
-        created_date: new Date().toISOString(),
-      };
-      
-      const updated = [...existingMovements, newMovement];
-      localStorage.setItem('cash_movements', JSON.stringify(updated));
-      
-      return newMovement;
+      if (isEditing && editingId) {
+        const updated = existingMovements.map((m: CashMovement) => 
+          m.id === editingId ? { ...m, ...data } : m
+        );
+        localStorage.setItem('cash_movements', JSON.stringify(updated));
+        return data;
+      } else {
+        const newMovement: CashMovement = {
+          ...data,
+          id: Date.now().toString(),
+          created_date: new Date().toISOString(),
+        };
+        const updated = [...existingMovements, newMovement];
+        localStorage.setItem('cash_movements', JSON.stringify(updated));
+        return newMovement;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cash_movements'] });
-      toast.success("Movimentação registrada!");
+      toast.success(isEditing ? "Movimentação atualizada!" : "Movimentação registrada!");
       setShowForm(false);
       resetForm();
+    },
+  });
+
+  const deleteMovement = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const stored = localStorage.getItem('cash_movements');
+      const existingMovements = stored ? JSON.parse(stored) : [];
+      const updated = existingMovements.filter((m: CashMovement) => !ids.includes(m.id));
+      localStorage.setItem('cash_movements', JSON.stringify(updated));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cash_movements'] });
+      setSelectedItems([]);
+      toast.success("Movimentações excluídas!");
     },
   });
 
@@ -82,6 +106,61 @@ export default function CashManagement() {
       date: new Date().toISOString().split('T')[0],
     });
     setMovementType('entrada');
+    setIsEditing(false);
+    setEditingId(null);
+  };
+
+  const handleEdit = (movement: CashMovement) => {
+    setFormData({
+      value: movement.value,
+      category: movement.category,
+      reason: movement.reason,
+      description: movement.description || '',
+      proof: movement.proof || '',
+      date: movement.date,
+    });
+    setMovementType(movement.type);
+    setIsEditing(true);
+    setEditingId(movement.id);
+    setShowForm(true);
+  };
+
+  const handleClone = (movement: CashMovement) => {
+    createMovement.mutate({
+      type: movement.type,
+      value: movement.value,
+      category: movement.category,
+      reason: movement.reason + " (Cópia)",
+      description: movement.description,
+      proof: movement.proof,
+      date: new Date().toISOString().split('T')[0],
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedItems(movements.map((m: CashMovement) => m.id));
+    } else {
+      setSelectedItems([]);
+    }
+  };
+
+  const handleSelectItem = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedItems([...selectedItems, id]);
+    } else {
+      setSelectedItems(selectedItems.filter(i => i !== id));
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedItems.length === 0) {
+      toast.error("Selecione pelo menos uma movimentação");
+      return;
+    }
+    if (confirm(`Deseja realmente excluir ${selectedItems.length} movimentação(ões)?`)) {
+      deleteMovement.mutate(selectedItems);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -166,8 +245,8 @@ export default function CashManagement() {
           </Card>
         </div>
 
-        {/* Filtros e Botão Nova Movimentação */}
-        <div className="flex justify-between items-center mb-6">
+        {/* Filtros e Botões de Ação */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div className="flex items-center gap-2">
             <Filter className="w-5 h-5 text-slate-600" />
             <span className="text-sm text-slate-600">Filtros</span>
@@ -183,19 +262,33 @@ export default function CashManagement() {
             </Select>
             <Input type="date" className="w-48" defaultValue={new Date().toISOString().split('T')[0]} />
           </div>
-          <Button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
-          >
-            + Nova Movimentação
-          </Button>
+          <div className="flex gap-2">
+            {selectedItems.length > 0 && (
+              <Button
+                onClick={handleDeleteSelected}
+                variant="destructive"
+                size="sm"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir ({selectedItems.length})
+              </Button>
+            )}
+            <Button
+              onClick={() => { setShowForm(!showForm); resetForm(); }}
+              className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
+            >
+              + Nova Movimentação
+            </Button>
+          </div>
         </div>
 
-        {/* Formulário de Nova Movimentação */}
+        {/* Formulário de Nova/Editar Movimentação */}
         {showForm && (
           <Card className="mb-6 shadow-lg">
             <CardContent className="p-6">
-              <h3 className="text-xl font-bold mb-4">Registrar Movimentação</h3>
+              <h3 className="text-xl font-bold mb-4">
+                {isEditing ? 'Editar Movimentação' : 'Registrar Movimentação'}
+              </h3>
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Tipo: Entrada ou Saída */}
                 <div className="flex gap-4">
@@ -299,7 +392,7 @@ export default function CashManagement() {
                       : 'bg-red-600 hover:bg-red-700'
                     }
                   >
-                    Registrar
+                    {isEditing ? 'Atualizar' : 'Registrar'}
                   </Button>
                 </div>
               </form>
@@ -321,16 +414,29 @@ export default function CashManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-slate-50">
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={selectedItems.length === movements.length && movements.length > 0}
+                          onCheckedChange={handleSelectAll}
+                        />
+                      </TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Categoria</TableHead>
                       <TableHead>Motivo</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
+                      <TableHead className="text-center">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {movements.map((movement: CashMovement) => (
                       <TableRow key={movement.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedItems.includes(movement.id)}
+                            onCheckedChange={(checked) => handleSelectItem(movement.id, checked as boolean)}
+                          />
+                        </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
                             <span>{format(new Date(movement.date), "dd/MM/yyyy")}</span>
@@ -364,6 +470,39 @@ export default function CashManagement() {
                           }`}>
                             {movement.type === 'entrada' ? '+' : '-'} R$ {movement.value.toFixed(2)}
                           </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEdit(movement)}
+                              title="Editar"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleClone(movement)}
+                              title="Clonar"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                if (confirm('Deseja realmente excluir esta movimentação?')) {
+                                  deleteMovement.mutate([movement.id]);
+                                }
+                              }}
+                              title="Excluir"
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
