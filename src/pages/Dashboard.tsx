@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { DollarSign, TrendingUp, ShoppingCart, Wrench, AlertTriangle, BarChart2, Receipt, ChevronRight, Monitor } from "lucide-react";
+import { DollarSign, TrendingUp, ShoppingCart, Wrench, AlertTriangle, BarChart2, Receipt, ChevronRight, Monitor, Wallet } from "lucide-react";
 import StatsCard from "../components/dashboard/StatsCard";
 import TopProductsChart from "../components/dashboard/TopProductsChart";
 import AISearch from "../components/dashboard/AISearch";
@@ -162,12 +162,14 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          <StatsCard
-            title="Saldo em Caixa"
-            value={`R$ ${saldoEmCaixa.toFixed(2)}`}
-            icon={DollarSign}
-            bgColor="bg-green-500"
-          />
+          <Link to="/cash-management">
+            <StatsCard
+              title="Saldo em Caixa"
+              value={`R$ ${saldoEmCaixa.toFixed(2)}`}
+              icon={Wallet}
+              bgColor="bg-green-500"
+            />
+          </Link>
           <StatsCard
             title="Receita Total (Geral)"
             value={`R$ ${totalRevenueWithServices.toFixed(2)}`}

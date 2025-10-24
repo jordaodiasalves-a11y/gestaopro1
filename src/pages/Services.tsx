@@ -50,14 +50,19 @@ export default function Services() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => base44.entities.Service.update(id, data),
-    onSuccess: () => {
+    mutationFn: ({ id, data }: { id: string; data: any }) => {
+      console.log('Atualizando serviço:', id, data);
+      return base44.entities.Service.update(id, data);
+    },
+    onSuccess: (response) => {
+      console.log('Serviço atualizado:', response);
       queryClient.invalidateQueries({ queryKey: ['services'] });
       toast.success("Serviço atualizado com sucesso!");
       setEditingService(null);
       setShowForm(false);
     },
     onError: (error: any) => {
+      console.error('Erro ao atualizar serviço:', error);
       toast.error(error?.message || "Erro ao atualizar serviço");
     },
   });

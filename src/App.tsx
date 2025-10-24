@@ -27,6 +27,8 @@ import Employees from "./pages/Employees";
 import Invoices from "./pages/Invoices";
 import Assets from "./pages/Assets";
 import UserManagement from "./pages/UserManagement";
+import CashManagement from "./pages/CashManagement";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,6 +61,8 @@ const App = () => (
               <Route path="/employees" element={<PermissionRoute permission="employees"><Layout><Employees /></Layout></PermissionRoute>} />
               <Route path="/invoices" element={<PermissionRoute permission="invoices"><Layout><Invoices /></Layout></PermissionRoute>} />
               <Route path="/assets" element={<PermissionRoute permission="assets"><Layout><Assets /></Layout></PermissionRoute>} />
+              <Route path="/cash-management" element={<PermissionRoute permission="expenses"><Layout><CashManagement /></Layout></PermissionRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
               <Route path="/user-management" element={<ProtectedRoute><Layout><UserManagement /></Layout></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>

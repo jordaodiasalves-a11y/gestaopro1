@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Users } from "lucide-react";
 
 interface SaleFormProps {
   products: any[];
@@ -15,12 +17,20 @@ interface SaleFormProps {
 }
 
 export default function SaleForm({ products, onSubmit, initialData, onCancel }: SaleFormProps) {
+  const [useRegisteredCustomer, setUseRegisteredCustomer] = useState(false);
   const [formData, setFormData] = useState({
     product_id: "",
     quantity: 1,
     sale_date: new Date().toISOString().split('T')[0],
     customer_name: "",
+    customer_id: "",
     notes: ""
+  });
+
+  // Carregar clientes
+  const { data: customers = [] } = useQuery({
+    queryKey: ['customers'],
+    queryFn: () => base44.entities.Customer.list(),
   });
 
   useEffect(() => {
@@ -30,6 +40,7 @@ export default function SaleForm({ products, onSubmit, initialData, onCancel }: 
         quantity: initialData.quantity || 1,
         sale_date: initialData.sale_date || new Date().toISOString().split('T')[0],
         customer_name: initialData.customer_name || "",
+        customer_id: initialData.customer_id || "",
         notes: initialData.notes || ""
       });
     } else {
@@ -38,6 +49,7 @@ export default function SaleForm({ products, onSubmit, initialData, onCancel }: 
         quantity: 1,
         sale_date: new Date().toISOString().split('T')[0],
         customer_name: "",
+        customer_id: "",
         notes: ""
       });
     }
@@ -134,13 +146,54 @@ export default function SaleForm({ products, onSubmit, initialData, onCancel }: 
           </div>
 
           <div>
-            <Label htmlFor="customer_name">Nome do Cliente (Opcional)</Label>
-            <Input
-              id="customer_name"
-              value={formData.customer_name}
-              onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
-              placeholder="Ex: João Silva"
-            />
+            <div className="flex items-center justify-between mb-2">
+              <Label htmlFor="customer_name">Cliente (Opcional)</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setUseRegisteredCustomer(!useRegisteredCustomer);
+                  setFormData({ ...formData, customer_name: "", customer_id: "" });
+                }}
+                className="text-xs"
+              >
+                <Users className="w-3 h-3 mr-1" />
+                {useRegisteredCustomer ? 'Digitar Livre' : 'Clientes Cadastrados'}
+              </Button>
+            </div>
+            
+            {useRegisteredCustomer ? (
+              <Select
+                value={formData.customer_id}
+                onValueChange={(value) => {
+                  const customer = customers.find((c: any) => c.id === value);
+                  setFormData({ 
+                    ...formData, 
+                    customer_id: value,
+                    customer_name: customer ? customer.company_name || customer.name : ""
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um cliente" />
+                </SelectTrigger>
+                <SelectContent className="bg-white">
+                  {customers.map((customer: any) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.company_name || customer.name} - {customer.cnpj || customer.cpf}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                id="customer_name"
+                value={formData.customer_name}
+                onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
+                placeholder="Ex: João Silva"
+              />
+            )}
           </div>
 
           <div>

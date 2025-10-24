@@ -45,11 +45,16 @@ export default function MarketplaceOrders() {
   // Tocar alerta quando novo pedido chegar
   useEffect(() => {
     const pendingOrders = orders.filter(o => o.status === "pendente");
-    if (alertMode === 'on-order' && pendingOrders.length > previousOrderCount) {
+    const newOrdersCount = pendingOrders.length;
+    
+    // Tocar som apenas se houver novos pedidos (mais que antes)
+    if (previousOrderCount > 0 && newOrdersCount > previousOrderCount && alertMode === 'on-order') {
+      console.log('🔔 Novo pedido detectado! Tocando alerta...');
       playAlert();
     }
-    setPreviousOrderCount(pendingOrders.length);
-  }, [orders, alertMode]);
+    
+    setPreviousOrderCount(newOrdersCount);
+  }, [orders, playAlert, alertMode, previousOrderCount]);
 
   const completeOrderMutation = useMutation({
     mutationFn: async ({ orderId, employeeName }: { orderId: string; employeeName: string }) => {

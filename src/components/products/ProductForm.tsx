@@ -37,8 +37,12 @@ export default function ProductForm({ initialData, onSubmit, onCancel }: Product
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
+      // Parse cost_items se vier como string JSON
       if (initialData.cost_items) {
-        setCostItems(initialData.cost_items);
+        const parsedItems = typeof initialData.cost_items === 'string' 
+          ? JSON.parse(initialData.cost_items) 
+          : initialData.cost_items;
+        setCostItems(Array.isArray(parsedItems) ? parsedItems : []);
       }
     }
   }, [initialData]);
@@ -67,10 +71,10 @@ export default function ProductForm({ initialData, onSubmit, onCancel }: Product
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
+    const submitData = {
       ...formData,
       components: [], // API expects an array
-      cost_items: costItems,
+      cost_items: JSON.stringify(costItems), // Salvar como string JSON
       total_cost,
       profit_margin,
       material_cost: parseFloat(String(formData.material_cost)) || 0,
@@ -79,7 +83,9 @@ export default function ProductForm({ initialData, onSubmit, onCancel }: Product
       sale_price: parseFloat(String(formData.sale_price)) || 0,
       stock_quantity: parseInt(String(formData.stock_quantity)) || 0,
       minimum_stock: parseInt(String(formData.minimum_stock)) || 0,
-    });
+    };
+    console.log('Submetendo produto com cost_items:', submitData.cost_items);
+    onSubmit(submitData);
   };
 
   return (

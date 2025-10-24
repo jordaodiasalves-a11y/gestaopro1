@@ -22,6 +22,7 @@ import {
   ChevronRight,
   LogOut,
   Settings,
+  Wallet,
 } from "lucide-react";
 import {
   Sidebar,
@@ -42,6 +43,7 @@ import { Button } from "@/components/ui/button";
 const navigationItems = [
   { title: "Dashboard", url: createPageUrl("Dashboard"), icon: LayoutDashboard },
   { title: "Relatórios", url: createPageUrl("Reports"), icon: BarChart2 },
+  { title: "Gestão de Caixa", url: "/cash-management", icon: Wallet },
   { title: "Produção", url: createPageUrl("Production"), icon: Factory },
   { title: "Pedidos Marketplace", url: "/marketplace-orders", icon: ShoppingBag },
   { title: "Produtos", url: createPageUrl("Products"), icon: Package },
@@ -54,6 +56,7 @@ const navigationItems = [
   { title: "Funcionários", url: createPageUrl("Employees"), icon: UserCog },
   { title: "Notas Fiscais", url: createPageUrl("Invoices"), icon: FileDigit },
   { title: "Máquinas e Veículos", url: createPageUrl("Assets"), icon: Car },
+  { title: "Configurações", url: "/settings", icon: Settings },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
