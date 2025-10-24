@@ -18,7 +18,12 @@ export default function Customers() {
     name: "",
     email: "",
     phone: "",
+    cnpj: "",
+    inscricao_estadual: "",
     address: "",
+    cep: "",
+    city: "",
+    state: "",
     notes: ""
   });
   
@@ -73,7 +78,12 @@ export default function Customers() {
       name: "",
       email: "",
       phone: "",
+      cnpj: "",
+      inscricao_estadual: "",
       address: "",
+      cep: "",
+      city: "",
+      state: "",
       notes: ""
     });
     setShowForm(false);
@@ -161,7 +171,7 @@ export default function Customers() {
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-3 gap-4">
                   <div>
                     <Label htmlFor="phone">Telefone</Label>
                     <Input
@@ -171,11 +181,56 @@ export default function Customers() {
                     />
                   </div>
                   <div>
+                    <Label htmlFor="cnpj">CNPJ/CPF</Label>
+                    <Input
+                      id="cnpj"
+                      value={formData.cnpj}
+                      onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="inscricao_estadual">Inscrição Estadual</Label>
+                    <Input
+                      id="inscricao_estadual"
+                      value={formData.inscricao_estadual}
+                      onChange={(e) => setFormData({ ...formData, inscricao_estadual: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-4 gap-4">
+                  <div>
+                    <Label htmlFor="cep">CEP</Label>
+                    <Input
+                      id="cep"
+                      value={formData.cep}
+                      onChange={(e) => setFormData({ ...formData, cep: e.target.value })}
+                    />
+                  </div>
+                  <div>
                     <Label htmlFor="address">Endereço</Label>
                     <Input
                       id="address"
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="city">Cidade</Label>
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="state">Estado</Label>
+                    <Input
+                      id="state"
+                      value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                      maxLength={2}
+                      placeholder="UF"
                     />
                   </div>
                 </div>
@@ -210,9 +265,9 @@ export default function Customers() {
                 <TableHeader>
                   <TableRow className="bg-slate-50">
                     <TableHead className="font-semibold">Nome</TableHead>
-                    <TableHead className="font-semibold">Email</TableHead>
+                    <TableHead className="font-semibold">CNPJ/CPF</TableHead>
                     <TableHead className="font-semibold">Telefone</TableHead>
-                    <TableHead className="font-semibold">Endereço</TableHead>
+                    <TableHead className="font-semibold">Cidade/Estado</TableHead>
                     <TableHead className="font-semibold text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -222,16 +277,16 @@ export default function Customers() {
                       <TableCell className="font-medium">
                         <div className="flex flex-col gap-1">
                           <span>{customer.name}</span>
-                          {customer.created_date && (
-                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full w-fit">
-                              📅 {format(new Date(customer.created_date), "dd/MM/yy HH:mm")}
-                            </span>
+                          {customer.email && (
+                            <span className="text-xs text-slate-500">{customer.email}</span>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>{customer.email || "-"}</TableCell>
+                      <TableCell>{customer.cnpj || "-"}</TableCell>
                       <TableCell>{customer.phone || "-"}</TableCell>
-                      <TableCell>{customer.address || "-"}</TableCell>
+                      <TableCell>
+                        {customer.city || customer.state ? `${customer.city || ''}, ${customer.state || ''}` : "-"}
+                      </TableCell>
                           <TableCell className="text-right">
                             <div className="flex gap-2 justify-end">
                               <Button

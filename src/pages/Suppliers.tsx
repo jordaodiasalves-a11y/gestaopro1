@@ -154,10 +154,14 @@ function SupplierForm({ initialData, onSubmit, onCancel }: any) {
   const [formData, setFormData] = useState(initialData || {
     name: "",
     cnpj: "",
+    inscricao_estadual: "",
     contact_person: "",
     email: "",
     phone: "",
     address: "",
+    cep: "",
+    city: "",
+    state: "",
     notes: ""
   });
 
@@ -168,7 +172,7 @@ function SupplierForm({ initialData, onSubmit, onCancel }: any) {
       </CardHeader>
       <CardContent className="p-6">
         <form onSubmit={(e) => { e.preventDefault(); onSubmit(formData); }} className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-3 gap-4">
             <div>
               <Label>Nome do Fornecedor *</Label>
               <Input
@@ -182,6 +186,13 @@ function SupplierForm({ initialData, onSubmit, onCancel }: any) {
               <Input
                 value={formData.cnpj}
                 onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Inscrição Estadual</Label>
+              <Input
+                value={formData.inscricao_estadual}
+                onChange={(e) => setFormData({ ...formData, inscricao_estadual: e.target.value })}
               />
             </div>
           </div>
@@ -211,11 +222,37 @@ function SupplierForm({ initialData, onSubmit, onCancel }: any) {
             </div>
           </div>
 
+          <div className="grid md:grid-cols-4 gap-4">
+            <div>
+              <Label>CEP</Label>
+              <Input
+                value={formData.cep}
+                onChange={(e) => setFormData({ ...formData, cep: e.target.value })}
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Label>Endereço</Label>
+              <Input
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Cidade</Label>
+              <Input
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              />
+            </div>
+          </div>
+
           <div>
-            <Label>Endereço</Label>
+            <Label>Estado</Label>
             <Input
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              value={formData.state}
+              onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+              maxLength={2}
+              placeholder="UF"
             />
           </div>
 

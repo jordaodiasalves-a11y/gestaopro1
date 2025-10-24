@@ -84,6 +84,16 @@ export default function Dashboard() {
 
   const lowStockMaterials = materials.filter(m => (m.quantity || 0) <= (m.minimum_quantity || 0));
 
+  // Carregar dados da gestão de caixa
+  const cashMovements = (() => {
+    const stored = localStorage.getItem('cash_movements');
+    return stored ? JSON.parse(stored) : [];
+  })();
+  
+  const totalEntradas = cashMovements.filter((m: any) => m.type === 'entrada').reduce((sum: number, m: any) => sum + m.value, 0);
+  const totalSaidas = cashMovements.filter((m: any) => m.type === 'saida').reduce((sum: number, m: any) => sum + m.value, 0);
+  const saldoEmCaixa = totalEntradas - totalSaidas;
+
   const productSales: Record<string, number> = {};
   sales.forEach(sale => {
     if (!productSales[sale.product_name]) {
@@ -151,18 +161,24 @@ export default function Dashboard() {
           <AISearch />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+          <StatsCard
+            title="Saldo em Caixa"
+            value={`R$ ${saldoEmCaixa.toFixed(2)}`}
+            icon={DollarSign}
+            bgColor="bg-green-500"
+          />
           <StatsCard
             title="Receita Total (Geral)"
             value={`R$ ${totalRevenueWithServices.toFixed(2)}`}
             icon={DollarSign}
-            bgColor="bg-green-500"
+            bgColor="bg-blue-500"
           />
           <StatsCard
             title="Lucro Líquido (Geral)"
             value={`R$ ${totalProfit.toFixed(2)}`}
             icon={TrendingUp}
-            bgColor="bg-blue-500"
+            bgColor="bg-purple-500"
           />
           <StatsCard
             title="Total Despesas (Geral)"
