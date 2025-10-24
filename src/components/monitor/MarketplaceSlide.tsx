@@ -14,7 +14,12 @@ export default function MarketplaceSlide() {
       try {
         const raw = localStorage.getItem("marketplace_orders");
         const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed.filter((o: any) => o.status !== "concluido") : [];
+        const filtered = Array.isArray(parsed)
+          ? parsed.filter((o: any) => o.status !== "concluido" && o.status !== "concluído")
+          : [];
+        // Ordenar por data de criação (desc)
+        const getTime = (o: any) => new Date(o.created_at || o.created_date || o.createdAt).getTime();
+        return filtered.sort((a: any, b: any) => getTime(b) - getTime(a));
       } catch {
         return [] as any[];
       }
@@ -29,7 +34,7 @@ export default function MarketplaceSlide() {
     const last = localStorage.getItem(lastKey);
     const lastTime = last ? new Date(last).getTime() : 0;
     const newOnes = orders.filter((o: any) => {
-      const orderCreated = new Date(o.created_at || o.created_date).getTime();
+      const orderCreated = new Date(o.created_at || o.created_date || o.createdAt).getTime();
       return orderCreated > lastTime;
     });
     if (newOnes.length > 0 && (alertMode === "on-order" || alertMode === "interval")) {

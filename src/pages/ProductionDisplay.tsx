@@ -13,7 +13,7 @@ import MarketplaceSlide from "@/components/monitor/MarketplaceSlide";
 export default function ProductionDisplay() {
   const [currentView, setCurrentView] = useState<'orders' | 'materials' | 'products' | 'marketplace'>('orders');
   const [showControls, setShowControls] = useState(false);
-  const [selectedManualAudio, setSelectedManualAudio] = useState<string>("1");
+  const [selectedManualAudio, setSelectedManualAudio] = useState<string>(() => localStorage.getItem('preferred_alert_manual_audio') || "1");
   const { playAlert, playManualAudio } = useSoundAlert();
 
   // Rotação automática a cada 5 segundos
@@ -29,6 +29,11 @@ export default function ProductionDisplay() {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Persistir áudio manual preferido para alertas automáticos
+  useEffect(() => {
+    localStorage.setItem('preferred_alert_manual_audio', selectedManualAudio);
+  }, [selectedManualAudio]);
   const { data: orders = [] } = useQuery({
     queryKey: ['production-orders-display'],
     queryFn: async () => {

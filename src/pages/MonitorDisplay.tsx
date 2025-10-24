@@ -16,7 +16,7 @@ type ViewType = 'purchases' | 'birthdays' | 'expenses' | 'reports' | 'top_produc
 export default function MonitorDisplay() {
   const [currentView, setCurrentView] = useState<ViewType>("purchases");
   const [showControls, setShowControls] = useState(false);
-  const [selectedManualAudio, setSelectedManualAudio] = useState<string>("1");
+  const [selectedManualAudio, setSelectedManualAudio] = useState<string>(() => localStorage.getItem('preferred_alert_manual_audio') || "1");
   const { playAlert, playManualAudio } = useSoundAlert();
 
   const views: ViewType[] = [
@@ -44,6 +44,11 @@ export default function MonitorDisplay() {
 
     return () => clearInterval(interval);
   }, [views]);
+
+  // Persistir áudio manual preferido para alertas automáticos
+  useEffect(() => {
+    localStorage.setItem('preferred_alert_manual_audio', selectedManualAudio);
+  }, [selectedManualAudio]);
 
   const { data: materials = [] } = useQuery({
     queryKey: ['materials-monitor'],

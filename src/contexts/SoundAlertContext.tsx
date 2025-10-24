@@ -50,27 +50,40 @@ export function SoundAlertProvider({ children }: { children: ReactNode }) {
   };
 
   const playAlert = (type: AlertType = 'new-order') => {
-    if (alertMode !== 'disabled') {
-      // Tenta tocar áudio customizado primeiro
-      const customAudioKey = `notification_audio_${type}`;
-      const customAudio = localStorage.getItem(customAudioKey);
-      
-      if (customAudio) {
+    if (alertMode === 'disabled') return;
+
+    // 1) Tenta tocar áudio customizado por tipo (se configurado)
+    const customAudioKey = `notification_audio_${type}`;
+    const customAudio = localStorage.getItem(customAudioKey);
+    if (customAudio) {
+      try {
+        const audio = new Audio(customAudio);
+        audio.play().catch(() => {
+          playBeep();
+        });
+        return;
+      } catch (e) {
+        console.error('Erro ao tocar áudio customizado:', e);
+      }
+    }
+
+    // 2) Preferência de áudio manual selecionado nos monitores (se existir)
+    const preferred = localStorage.getItem('preferred_alert_manual_audio');
+    if (preferred) {
+      const manual = localStorage.getItem(`manual_audio_${preferred}`);
+      if (manual) {
         try {
-          const audio = new Audio(customAudio);
-          audio.play().catch(() => {
-            // Fallback para beep se falhar
-            playBeep();
-          });
+          const audio = new Audio(manual);
+          audio.play().catch(() => playBeep());
           return;
         } catch (e) {
-          console.error('Erro ao tocar áudio customizado:', e);
+          console.error('Erro ao tocar áudio manual preferido:', e);
         }
       }
-      
-      // Fallback: usar beep simples do navegador
-      playBeep();
     }
+
+    // 3) Fallback: beep simples
+    playBeep();
   };
 
   const playManualAudio = (audioName: string) => {

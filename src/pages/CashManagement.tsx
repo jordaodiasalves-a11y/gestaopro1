@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -40,17 +40,12 @@ export default function CashManagement() {
     date: new Date().toISOString().split('T')[0],
   });
 
-  // Carregar movimentações do localStorage
-  const { data: movements = [] } = useQuery({
-    queryKey: ['cash_movements'],
-    queryFn: () => {
-      const stored = localStorage.getItem('cash_movements');
-      const data = stored ? JSON.parse(stored) : [];
-      return data.sort((a: CashMovement, b: CashMovement) => 
-        new Date(b.created_date).getTime() - new Date(a.created_date).getTime()
-      );
-    },
-  });
+  // Inicializar armazenamento local se necessário
+  useEffect(() => {
+    if (!localStorage.getItem('cash_movements')) {
+      localStorage.setItem('cash_movements', '[]');
+    }
+  }, []);
 
   const createMovement = useMutation({
     mutationFn: async (data: Omit<CashMovement, 'id' | 'created_date'>) => {
@@ -75,6 +70,14 @@ export default function CashManagement() {
       }
     },
     onSuccess: () => {
+      try {
+        const stored = localStorage.getItem('cash_movements');
+        const data = stored ? JSON.parse(stored) : [];
+        const sorted = data.sort((a: CashMovement, b: CashMovement) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime());
+        queryClient.setQueryData(['cash_movements'], sorted);
+      } catch (e) {
+        console.error('Erro ao ler movimentos do caixa:', e);
+      }
       queryClient.invalidateQueries({ queryKey: ['cash_movements'] });
       toast.success(isEditing ? "Movimentação atualizada!" : "Movimentação registrada!");
       setShowForm(false);
@@ -90,6 +93,14 @@ export default function CashManagement() {
       localStorage.setItem('cash_movements', JSON.stringify(updated));
     },
     onSuccess: () => {
+      try {
+        const stored = localStorage.getItem('cash_movements');
+        const data = stored ? JSON.parse(stored) : [];
+        const sorted = data.sort((a: CashMovement, b: CashMovement) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime());
+        queryClient.setQueryData(['cash_movements'], sorted);
+      } catch (e) {
+        console.error('Erro ao atualizar lista após exclusão:', e);
+      }
       queryClient.invalidateQueries({ queryKey: ['cash_movements'] });
       setSelectedItems([]);
       toast.success("Movimentações excluídas!");
