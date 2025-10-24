@@ -22,18 +22,22 @@ export default function MarketplaceSlide() {
     refetchInterval: 5000,
   });
 
-  // Tocar som somente quando chegarem novos pedidos
+  // Tocar som somente quando chegarem novos pedidos (com proteção contra duplicação)
   useEffect(() => {
     if (!orders || orders.length === 0) return;
     const lastKey = "marketplace_last_check_monitor";
     const last = localStorage.getItem(lastKey);
     const lastTime = last ? new Date(last).getTime() : 0;
-    const newOnes = orders.filter((o: any) => new Date(o.created_at || o.created_date).getTime() > lastTime);
+    const newOnes = orders.filter((o: any) => {
+      const orderCreated = new Date(o.created_at || o.created_date).getTime();
+      return orderCreated > lastTime;
+    });
     if (newOnes.length > 0 && (alertMode === "on-order" || alertMode === "interval")) {
+      console.log("🔔 MarketplaceSlide: Novos pedidos detectados:", newOnes.length);
       playAlert();
     }
     localStorage.setItem(lastKey, new Date().toISOString());
-  }, [dataUpdatedAt]);
+  }, [dataUpdatedAt, playAlert, alertMode]);
 
   if (!orders || orders.length === 0) {
     return (

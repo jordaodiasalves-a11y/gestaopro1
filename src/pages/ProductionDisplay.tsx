@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { SoundAlertControl } from "@/components/SoundAlertControl";
 import { useSoundAlert } from "@/contexts/SoundAlertContext";
+import MarketplaceSlide from "@/components/monitor/MarketplaceSlide";
 
 // Dashboard de Produção para Monitor Externo - ROTAÇÃO AUTOMÁTICA
 export default function ProductionDisplay() {
@@ -60,26 +61,6 @@ export default function ProductionDisplay() {
     },
     refetchInterval: 5000,
   });
-
-  const { data: marketplaceOrders = [], dataUpdatedAt } = useQuery({
-    queryKey: ['marketplace-orders-display'],
-    queryFn: async () => {
-      const stored = localStorage.getItem('marketplace_orders');
-      if (stored) {
-        const orders = JSON.parse(stored);
-        return orders.filter((o: any) => o.status !== 'concluido');
-      }
-      return [];
-    },
-    refetchInterval: 5000,
-  });
-
-  // Tocar som quando houver novos pedidos marketplace
-  useEffect(() => {
-    if (marketplaceOrders.length > 0) {
-      playAlert();
-    }
-  }, [dataUpdatedAt]);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -259,53 +240,7 @@ export default function ProductionDisplay() {
 
         {/* Pedidos Marketplace */}
         {currentView === 'marketplace' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {marketplaceOrders.length === 0 ? (
-              <div className="col-span-full text-center py-20">
-                <ShoppingBag className="w-24 h-24 mx-auto mb-6 text-slate-600" />
-                <p className="text-3xl text-slate-400">Nenhum pedido pendente</p>
-              </div>
-            ) : (
-              marketplaceOrders.map((order: any) => (
-                <Card 
-                  key={order.id} 
-                  className="bg-gradient-to-br from-purple-900 to-blue-900 border-2 border-purple-600 shadow-2xl"
-                >
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-2xl text-white font-bold">
-                        {order.order_number}
-                      </CardTitle>
-                      <Badge className="bg-yellow-500 text-white text-sm px-3 py-1">
-                        PENDENTE
-                      </Badge>
-                    </div>
-                    <p className="text-purple-200 text-lg">{order.customer_name}</p>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {order.items.map((item: any, idx: number) => (
-                      <div key={idx} className="bg-black/30 p-4 rounded-lg">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <p className="text-white text-lg font-semibold">{item.product}</p>
-                            <p className="text-green-400 text-2xl font-bold mt-1">
-                              Qtd: {item.quantity}
-                            </p>
-                          </div>
-                        </div>
-                        {item.location && (
-                          <div className="flex items-center gap-2 mt-3 text-blue-300">
-                            <MapPin className="w-4 h-4" />
-                            <p className="text-sm">{item.location}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
+          <MarketplaceSlide />
         )}
 
         {/* Produtos para Repor */}
