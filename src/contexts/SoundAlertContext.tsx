@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { externalServer } from '@/api/externalServer';
 
 type AlertMode = 'disabled' | 'on-order' | 'interval';
 type AlertType = 'new-order' | 'order-completed' | 'low-stock';
@@ -49,25 +50,45 @@ export function SoundAlertProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('alert_interval_minutes', minutes.toString());
   };
 
-  const playAlert = (type: AlertType = 'new-order') => {
+  const playAlert = async (type: AlertType = 'new-order') => {
     if (alertMode === 'disabled') return;
 
-    // 1) Tenta tocar áudio customizado por tipo (se configurado)
+    // 1) PRIORIDADE: Áudio do servidor externo por tipo
+    const audioMap: Record<AlertType, string> = {
+      'new-order': 'novo_pedido.mp3',
+      'order-completed': 'pedido_concluido.mp3',
+      'low-stock': 'estoque_baixo.mp3'
+    };
+
+    try {
+      const audioUrl = await externalServer.getAudio(audioMap[type]);
+      const audio = new Audio(audioUrl);
+      audio.play().catch(() => {
+        console.warn('Erro ao tocar áudio do servidor, tentando alternativas');
+        playLocalOrBeep(type);
+      });
+      return;
+    } catch (e) {
+      console.warn('Servidor externo indisponível, usando áudio local:', e);
+      playLocalOrBeep(type);
+    }
+  };
+
+  const playLocalOrBeep = (type: AlertType) => {
+    // 2) Tenta áudio customizado local por tipo
     const customAudioKey = `notification_audio_${type}`;
     const customAudio = localStorage.getItem(customAudioKey);
     if (customAudio) {
       try {
         const audio = new Audio(customAudio);
-        audio.play().catch(() => {
-          playBeep();
-        });
+        audio.play().catch(() => playBeep());
         return;
       } catch (e) {
         console.error('Erro ao tocar áudio customizado:', e);
       }
     }
 
-    // 2) Preferência de áudio manual selecionado nos monitores (se existir)
+    // 3) Preferência de áudio manual selecionado
     const preferred = localStorage.getItem('preferred_alert_manual_audio');
     if (preferred) {
       const manual = localStorage.getItem(`manual_audio_${preferred}`);
@@ -82,7 +103,7 @@ export function SoundAlertProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // 3) Fallback: beep simples
+    // 4) Fallback: beep simples
     playBeep();
   };
 

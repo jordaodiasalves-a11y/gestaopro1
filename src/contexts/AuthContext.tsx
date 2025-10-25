@@ -33,13 +33,21 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Usuários padrão armazenados no localStorage
+// Usuários padrão armazenados no localStorage - PERMANENTES
 const DEFAULT_USERS = [
   { 
     username: 'admin', 
     password: 'suporte@1', 
     role: 'admin' as const,
-    permissions: [] as Permission[] // Admin tem acesso a tudo
+    permissions: [] as Permission[], // Admin tem acesso a tudo
+    permanent: true
+  },
+  { 
+    username: 'salvador', 
+    password: 'salvador123', 
+    role: 'admin' as const,
+    permissions: [] as Permission[], // Admin tem acesso a tudo
+    permanent: true
   }
 ];
 
@@ -47,11 +55,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Inicializar usuários padrão se não existirem
+    // GARANTIR usuários padrão permanentes sempre existam
     const storedUsers = localStorage.getItem('app_users');
-    if (!storedUsers) {
-      localStorage.setItem('app_users', JSON.stringify(DEFAULT_USERS));
-    }
+    let users = storedUsers ? JSON.parse(storedUsers) : [];
+    
+    // Adicionar ou atualizar usuários permanentes
+    DEFAULT_USERS.forEach(defaultUser => {
+      const existingIndex = users.findIndex((u: any) => u.username === defaultUser.username);
+      if (existingIndex === -1) {
+        // Adicionar usuário se não existir
+        users.push(defaultUser);
+      } else {
+        // Atualizar usuário permanente (manter senha e role corretos)
+        users[existingIndex] = { ...users[existingIndex], ...defaultUser };
+      }
+    });
+    
+    localStorage.setItem('app_users', JSON.stringify(users));
 
     // Verificar se há usuário logado
     const storedUser = localStorage.getItem('current_user');

@@ -7,9 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Settings as SettingsIcon, Download, Upload, Volume2, FileJson, ExternalLink, Moon, Sun, FileSpreadsheet } from "lucide-react";
+import { Settings as SettingsIcon, Download, Upload, Volume2, FileJson, ExternalLink, Moon, Sun, FileSpreadsheet, Database } from "lucide-react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
+import { BackupManager } from "@/components/BackupManager";
+import { SoundAlertControl } from "@/components/SoundAlertControl";
 
 export default function Settings() {
   const [blingConfig, setBlingConfig] = useState({ authType: 'oauth', apiKey: '', clientId: '', clientSecret: '', accessToken: '' });
@@ -287,11 +289,15 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="integrations" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-2/3">
+          <TabsList className="grid w-full grid-cols-5 lg:w-2/3">
             <TabsTrigger value="integrations">Integrações</TabsTrigger>
             <TabsTrigger value="notifications">Notificações</TabsTrigger>
             <TabsTrigger value="appearance">Aparência</TabsTrigger>
-            <TabsTrigger value="backup">Backup</TabsTrigger>
+            <TabsTrigger value="backup">Backup CSV</TabsTrigger>
+            <TabsTrigger value="external-server">
+              <Database className="w-4 h-4 mr-1" />
+              Servidor
+            </TabsTrigger>
           </TabsList>
 
           {/* Integrações */}
@@ -808,6 +814,16 @@ export default function Settings() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Servidor Externo & Backup Automático */}
+          <TabsContent value="external-server">
+            <BackupManager />
+          </TabsContent>
+
+          {/* Notificações */}
+          <TabsContent value="notifications">
+            <SoundAlertControl />
           </TabsContent>
         </Tabs>
       </div>
