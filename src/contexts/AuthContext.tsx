@@ -44,7 +44,7 @@ const DEFAULT_USERS = [
   },
   { 
     username: 'salvador', 
-    password: 'salvador123', 
+    password: 'salvador@1', // atualizado conforme solicitado
     role: 'admin' as const,
     permissions: [] as Permission[], // Admin tem acesso a tudo
     permanent: true

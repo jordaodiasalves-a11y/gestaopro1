@@ -53,25 +53,36 @@ export function SoundAlertProvider({ children }: { children: ReactNode }) {
   const playAlert = async (type: AlertType = 'new-order') => {
     if (alertMode === 'disabled') return;
 
-    // 1) PRIORIDADE: Áudio do servidor externo por tipo
+    // Preferência de fonte de áudio
+    const audioSourcePref = (localStorage.getItem('audio_source') || 'server') as 'server' | 'local';
+
+    // 1) PRIORIDADE: Áudio do servidor externo por tipo (se preferido)
     const audioMap: Record<AlertType, string> = {
       'new-order': 'novo_pedido.mp3',
       'order-completed': 'pedido_concluido.mp3',
       'low-stock': 'estoque_baixo.mp3'
     };
 
-    try {
-      const audioUrl = await externalServer.getAudio(audioMap[type]);
-      const audio = new Audio(audioUrl);
-      audio.play().catch(() => {
-        console.warn('Erro ao tocar áudio do servidor, tentando alternativas');
-        playLocalOrBeep(type);
-      });
-      return;
-    } catch (e) {
-      console.warn('Servidor externo indisponível, usando áudio local:', e);
-      playLocalOrBeep(type);
+    if (audioSourcePref === 'server') {
+      try {
+        const audioUrl = await externalServer.getAudio(audioMap[type]);
+        const audio = new Audio();
+        audio.crossOrigin = 'anonymous';
+        audio.src = audioUrl;
+        audio.load();
+        audio.play().catch(() => {
+          console.warn('Erro ao tocar áudio do servidor, tentando alternativas');
+          playLocalOrBeep(type);
+        });
+        return;
+      } catch (e) {
+        console.warn('Servidor externo indisponível, usando áudio local:', e);
+        // continua para tentar local abaixo
+      }
     }
+
+    // 2) Caso preferido seja local OU falhou servidor
+    playLocalOrBeep(type);
   };
 
   const playLocalOrBeep = (type: AlertType) => {
@@ -112,7 +123,10 @@ export function SoundAlertProvider({ children }: { children: ReactNode }) {
     
     if (customAudio) {
       try {
-        const audio = new Audio(customAudio);
+        const audio = new Audio();
+        audio.crossOrigin = 'anonymous';
+        audio.src = customAudio;
+        audio.load();
         audio.play().catch((e) => {
           console.error('Erro ao tocar áudio manual:', e);
         });

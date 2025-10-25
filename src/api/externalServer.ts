@@ -22,19 +22,10 @@ class ExternalServerClient {
     'alerta_geral.mp3'
   ];
 
-  // Buscar áudio do servidor
+  // Buscar áudio do servidor (sem HEAD para evitar bloqueio mixed-content/CORS)
   async getAudio(audioName: string): Promise<string> {
-    try {
-      const url = `${AUDIO_PATH}/${audioName}`;
-      const response = await fetch(url, { method: 'HEAD' });
-      if (response.ok) {
-        return url;
-      }
-      throw new Error(`Áudio ${audioName} não encontrado no servidor`);
-    } catch (error) {
-      console.error('Erro ao buscar áudio:', error);
-      throw error;
-    }
+    // Retorna diretamente a URL do servidor
+    return `${AUDIO_PATH}/${audioName}`;
   }
 
   // Lista todos os áudios disponíveis
@@ -67,7 +58,7 @@ class ExternalServerClient {
       const key = `external_${entityName}`;
       const stored = localStorage.getItem(key);
       const items = stored ? JSON.parse(stored) : [];
-      items.push({ ...data, id: Date.now().toString(), synced: false });
+      items.push({ ...data, id: data?.id || Date.now().toString(), synced: false });
       localStorage.setItem(key, JSON.stringify(items));
       return data;
     }

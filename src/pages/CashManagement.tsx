@@ -9,8 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Wallet, TrendingUp, TrendingDown, Filter, Upload, Copy, Trash2, Edit } from "lucide-react";
-import { format } from "date-fns";
 import { toast } from "sonner";
+import { externalServer } from "@/api/externalServer";
 
 interface CashMovement {
   id: string;
@@ -74,6 +74,12 @@ export default function CashManagement() {
           m.id === editingId ? { ...m, ...data } : m
         );
         localStorage.setItem('cash_movements', JSON.stringify(updated));
+        // Tentar atualizar no servidor externo
+        try {
+          await externalServer.updateInExternalDatabase('cash_movements', editingId, data);
+        } catch (e) {
+          // Fallback já tratado no cliente
+        }
         return data;
       } else {
         const newMovement: CashMovement = {
@@ -83,6 +89,12 @@ export default function CashManagement() {
         };
         const updated = [...existingMovements, newMovement];
         localStorage.setItem('cash_movements', JSON.stringify(updated));
+        // Tentar salvar no servidor externo
+        try {
+          await externalServer.saveToExternalDatabase('cash_movements', newMovement);
+        } catch (e) {
+          // Fallback já tratado no cliente
+        }
         return newMovement;
       }
     },
@@ -108,6 +120,14 @@ export default function CashManagement() {
       const existingMovements = stored ? JSON.parse(stored) : [];
       const updated = existingMovements.filter((m: CashMovement) => !ids.includes(m.id));
       localStorage.setItem('cash_movements', JSON.stringify(updated));
+      // Tentar deletar no servidor externo
+      for (const id of ids) {
+        try {
+          await externalServer.deleteFromExternalDatabase('cash_movements', id);
+        } catch (e) {
+          // Fallback já tratado no cliente
+        }
+      }
     },
     onSuccess: () => {
       try {
@@ -449,7 +469,7 @@ export default function CashManagement() {
             {movements.length === 0 ? (
               <div className="text-center py-12 text-slate-400">
                 <Wallet className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p>Nenhuma movimentação encontrada</p>
+                <p>Nenhuma movimentação encontrado</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -458,91 +478,67 @@ export default function CashManagement() {
                     <TableRow className="bg-slate-50">
                       <TableHead className="w-12">
                         <Checkbox
-                          checked={selectedItems.length === movements.length && movements.length > 0}
-                          onCheckedChange={handleSelectAll}
+                          checked={selectedItems.length === movements.length}
+                          onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                          aria-label="Selecionar todos"
                         />
                       </TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Categoria</TableHead>
                       <TableHead>Motivo</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                      <TableHead className="text-center">Ações</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {movements.map((movement: CashMovement) => (
-                      <TableRow key={movement.id}>
+                    {movements.map((m: CashMovement) => (
+                      <TableRow key={m.id}>
                         <TableCell>
                           <Checkbox
-                            checked={selectedItems.includes(movement.id)}
-                            onCheckedChange={(checked) => handleSelectItem(movement.id, checked as boolean)}
+                            checked={selectedItems.includes(m.id)}
+                            onCheckedChange={(checked) => handleSelectItem(m.id, !!checked)}
+                            aria-label="Selecionar"
                           />
                         </TableCell>
+                        <TableCell>{new Date(m.date).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <div className="flex flex-col gap-1">
-                            <span>{format(new Date(movement.date), "dd/MM/yyyy")}</span>
-                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full w-fit">
-                              {format(new Date(movement.created_date), "HH:mm")}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {movement.type === 'entrada' ? (
-                            <span className="flex items-center gap-1 text-blue-600">
-                              <TrendingUp className="w-4 h-4" /> Entrada
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1 text-red-600">
-                              <TrendingDown className="w-4 h-4" /> Saída
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            movement.type === 'entrada' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'
-                          }`}>
-                            {movement.category}
+                          <span className={m.type === 'entrada' ? 'text-blue-600 font-semibold' : 'text-red-600 font-semibold'}>
+                            {m.type === 'entrada' ? 'Entrada' : 'Saída'}
                           </span>
                         </TableCell>
-                        <TableCell>{movement.reason}</TableCell>
+                        <TableCell>{m.category}</TableCell>
+                        <TableCell className="max-w-[240px] truncate" title={m.reason}>{m.reason}</TableCell>
+                        <TableCell className="max-w-[300px] truncate" title={m.description}>{m.description}</TableCell>
+                        <TableCell className={m.type === 'entrada' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+                          R$ {m.value.toFixed(2)}
+                        </TableCell>
                         <TableCell className="text-right">
-                          <span className={`font-bold ${
-                            movement.type === 'entrada' ? 'text-blue-600' : 'text-red-600'
-                          }`}>
-                            {movement.type === 'entrada' ? '+' : '-'} R$ {movement.value.toFixed(2)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex justify-center gap-1">
+                          <div className="flex gap-2 justify-end">
                             <Button
-                              size="sm"
                               variant="ghost"
-                              onClick={() => handleEdit(movement)}
-                              title="Editar"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleClone(movement)}
+                              size="icon"
+                              onClick={() => handleClone(m)}
                               title="Clonar"
                             >
-                              <Copy className="w-4 h-4" />
+                              <Copy className="w-4 h-4 text-gray-600" />
                             </Button>
                             <Button
-                              size="sm"
                               variant="ghost"
-                              onClick={() => {
-                                if (confirm('Deseja realmente excluir esta movimentação?')) {
-                                  deleteMovement.mutate([movement.id]);
-                                }
-                              }}
-                              title="Excluir"
-                              className="text-red-600 hover:text-red-700"
+                              size="icon"
+                              onClick={() => handleEdit(m)}
+                              title="Editar"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Edit className="w-4 h-4 text-blue-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteMovement.mutate([m.id])}
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
                             </Button>
                           </div>
                         </TableCell>
