@@ -3,9 +3,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Upload, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { getProductMeta } from "@/utils/productMeta";
+import { getProductMeta, saveProductMeta } from "@/utils/productMeta";
+import { saveFileLocally, getLocalFile, deleteLocalFile } from "@/utils/localFileStorage";
+import { toast } from "sonner";
 
 interface ProductFormProps {
   initialData?: any;
@@ -30,10 +32,12 @@ export default function ProductForm({ initialData, onSubmit, onCancel }: Product
     stock_quantity: 0,
     minimum_stock: 0,
     image_url: "",
+    image_url_2: "",
     notes: ""
   });
 
   const [costItems, setCostItems] = useState<CostItem[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -87,6 +91,31 @@ export default function ProductForm({ initialData, onSubmit, onCancel }: Product
   const profit = (parseFloat(String(formData.sale_price)) || 0) - total_cost;
   const profit_margin = formData.sale_price > 0 ? (profit / formData.sale_price) * 100 : 0;
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, imageField: 'image_url' | 'image_url_2') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor, selecione uma imagem válida');
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const storedFile = await saveFileLocally(file);
+      setFormData({ ...formData, [imageField]: storedFile.data });
+      toast.success('Imagem salva localmente!');
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao salvar imagem');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const removeImage = (imageField: 'image_url' | 'image_url_2') => {
+    setFormData({ ...formData, [imageField]: '' });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const safeCostItems = Array.isArray(costItems) ? costItems : [];
@@ -109,6 +138,16 @@ export default function ProductForm({ initialData, onSubmit, onCancel }: Product
       stock_quantity: parseInt(String(formData.stock_quantity)) || 0,
       minimum_stock: parseInt(String(formData.minimum_stock)) || 0,
     };
+
+    // Salvar metadados localmente para backup
+    if (initialData?.id || submitData.product_name) {
+      const productId = initialData?.id || `${Date.now()}`;
+      saveProductMeta(productId, {
+        components_text: submitData.components_text,
+        cost_items: safeCostItems,
+      });
+    }
+
     console.log('Submetendo produto com cost_items:', submitData.cost_items);
     onSubmit(submitData);
   };
@@ -135,16 +174,62 @@ export default function ProductForm({ initialData, onSubmit, onCancel }: Product
         </div>
       </div>
 
-      <div>
-        <Label>URL da Imagem</Label>
-        <Input
-          value={formData.image_url}
-          onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-          placeholder="https://exemplo.com/imagem.jpg"
-        />
-        {formData.image_url && (
-          <img src={formData.image_url} alt="Preview" className="mt-2 h-32 object-cover rounded" />
-        )}
+      <div className="grid md:grid-cols-2 gap-4">
+        <div>
+          <Label>Imagem Principal</Label>
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e, 'image_url')}
+                disabled={uploadingImage}
+                className="flex-1"
+              />
+              {formData.image_url && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeImage('image_url')}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+            {formData.image_url && (
+              <img src={formData.image_url} alt="Preview 1" className="h-32 w-full object-cover rounded" />
+            )}
+          </div>
+        </div>
+
+        <div>
+          <Label>Imagem Secundária</Label>
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e, 'image_url_2')}
+                disabled={uploadingImage}
+                className="flex-1"
+              />
+              {formData.image_url_2 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeImage('image_url_2')}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+            {formData.image_url_2 && (
+              <img src={formData.image_url_2} alt="Preview 2" className="h-32 w-full object-cover rounded" />
+            )}
+          </div>
+        </div>
       </div>
 
       <div>

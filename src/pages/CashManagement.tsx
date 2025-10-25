@@ -401,12 +401,26 @@ export default function CashManagement() {
                       type="file"
                       className="flex-1"
                       accept="image/*,.pdf"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const { saveFileLocally } = await import('@/utils/localFileStorage');
+                          const storedFile = await saveFileLocally(file);
+                          setFormData({ ...formData, proof: storedFile.data });
+                          toast.success('Comprovante salvo localmente!');
+                        } catch (error: any) {
+                          toast.error(error.message || 'Erro ao salvar comprovante');
+                        }
+                      }}
                     />
                     <Button type="button" variant="outline" size="icon">
                       <Upload className="w-4 h-4" />
                     </Button>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">Procurar... Nenhum arquivo selecionado.</p>
+                  {formData.proof && (
+                    <p className="text-xs text-green-600 mt-1">✓ Comprovante anexado</p>
+                  )}
                 </div>
 
                 <div className="flex gap-3 justify-end pt-4">
