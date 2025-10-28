@@ -27,7 +27,9 @@ import Employees from "./pages/Employees";
 import Invoices from "./pages/Invoices";
 import Assets from "./pages/Assets";
 import UserManagement from "./pages/UserManagement";
+import UserManagement2 from "./pages/UserManagement2";
 import CashManagement from "./pages/CashManagement";
+import CashManagement2 from "./pages/CashManagement2";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -62,8 +64,10 @@ const App = () => (
               <Route path="/invoices" element={<PermissionRoute permission="invoices"><Layout><Invoices /></Layout></PermissionRoute>} />
               <Route path="/assets" element={<PermissionRoute permission="assets"><Layout><Assets /></Layout></PermissionRoute>} />
               <Route path="/cash-management" element={<PermissionRoute permission="expenses"><Layout><CashManagement /></Layout></PermissionRoute>} />
+              <Route path="/cash-management-2" element={<PermissionRoute permission="expenses"><Layout><CashManagement2 /></Layout></PermissionRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
               <Route path="/user-management" element={<ProtectedRoute><Layout><UserManagement /></Layout></ProtectedRoute>} />
+              <Route path="/user-management-2" element={<ProtectedRoute><Layout><UserManagement2 /></Layout></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
