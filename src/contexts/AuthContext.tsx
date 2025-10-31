@@ -1,135 +1,111 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
-export type Permission = 
-  | 'dashboard' 
-  | 'products' 
-  | 'sales' 
-  | 'reports' 
-  | 'customers' 
-  | 'materials' 
-  | 'services' 
-  | 'expenses' 
-  | 'production' 
-  | 'marketplace-orders' 
-  | 'suppliers' 
-  | 'employees' 
-  | 'invoices' 
+export type Permission =
+  | 'dashboard'
+  | 'products'
+  | 'sales'
+  | 'reports'
+  | 'customers'
+  | 'materials'
+  | 'services'
+  | 'expenses'
+  | 'production'
+  | 'marketplace-orders'
+  | 'suppliers'
+  | 'employees'
+  | 'invoices'
   | 'assets';
 
 interface User {
-  username: string;
-  role: 'admin' | 'user';
-  permissions?: Permission[];
+  id: string;
+  email: string | null;
+  role?: 'admin' | 'user';
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (username: string, password: string) => boolean;
-  logout: () => void;
   isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  signUp: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
   hasPermission: (permission: Permission) => boolean;
-  changePassword: (username: string, newPassword: string) => boolean;
+  changePassword: (newPassword: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Usuários padrão armazenados no localStorage - PERMANENTES
-const DEFAULT_USERS = [
-  { 
-    username: 'admin', 
-    password: 'suporte@1', 
-    role: 'admin' as const,
-    permissions: [] as Permission[], // Admin tem acesso a tudo
-    permanent: true
-  },
-  { 
-    username: 'salvador', 
-    password: 'salvador@1', // atualizado conforme solicitado
-    role: 'admin' as const,
-    permissions: [] as Permission[], // Admin tem acesso a tudo
-    permanent: true
-  }
-];
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
+  // Carrega sessão atual e escuta mudanças de autenticação do backend (Lovable Cloud)
   useEffect(() => {
-    // GARANTIR usuários padrão permanentes sempre existam
-    const storedUsers = localStorage.getItem('app_users');
-    let users = storedUsers ? JSON.parse(storedUsers) : [];
-    
-    // Adicionar ou atualizar usuários permanentes
-    DEFAULT_USERS.forEach(defaultUser => {
-      const existingIndex = users.findIndex((u: any) => u.username === defaultUser.username);
-      if (existingIndex === -1) {
-        // Adicionar usuário se não existir
-        users.push(defaultUser);
-      } else {
-        // Atualizar usuário permanente (manter senha e role corretos)
-        users[existingIndex] = { ...users[existingIndex], ...defaultUser };
-      }
-    });
-    
-    localStorage.setItem('app_users', JSON.stringify(users));
+    let mounted = true;
 
-    // Verificar se há usuário logado
-    const storedUser = localStorage.getItem('current_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    const init = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!mounted) return;
+      if (data.user) {
+        setUser({ id: data.user.id, email: data.user.email ?? null });
+      } else {
+        setUser(null);
+      }
+    };
+
+    init();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      const authUser = session?.user ?? null;
+      setUser(authUser ? { id: authUser.id, email: authUser.email ?? null } : null);
+    });
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
-  const login = (username: string, password: string): boolean => {
-    const users = JSON.parse(localStorage.getItem('app_users') || '[]');
-    const foundUser = users.find(
-      (u: any) => u.username === username && u.password === password
-    );
-
-    if (foundUser) {
-      const userData = { 
-        username: foundUser.username, 
-        role: foundUser.role,
-        permissions: foundUser.permissions || []
-      };
-      setUser(userData);
-      localStorage.setItem('current_user', JSON.stringify(userData));
-      return true;
-    }
-    return false;
-  };
-
-  const hasPermission = (permission: Permission): boolean => {
-    if (!user) return false;
-    if (user.role === 'admin') return true;
-    return user.permissions?.includes(permission) || false;
-  };
-
-  const changePassword = (username: string, newPassword: string): boolean => {
-    const users = JSON.parse(localStorage.getItem('app_users') || '[]');
-    const userIndex = users.findIndex((u: any) => u.username === username);
-    
-    if (userIndex === -1) return false;
-    
-    users[userIndex].password = newPassword;
-    localStorage.setItem('app_users', JSON.stringify(users));
-    
-    // Se for o usuário atual, atualizar a sessão
-    if (user?.username === username) {
-      const userData = { ...user };
-      localStorage.setItem('current_user', JSON.stringify(userData));
-    }
-    
+  const login = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.session) return false;
+    setUser({ id: data.user.id, email: data.user.email ?? null });
     return true;
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('current_user');
+  const signUp = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) return false;
+    // Se auto-confirm estiver ativo, já haverá sessão; caso contrário o usuário precisará confirmar por e-mail
+    if (data.user) setUser({ id: data.user.id, email: data.user.email ?? null });
+    return true;
   };
 
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
+
+  // Por agora, qualquer usuário autenticado possui acesso às rotas protegidas.
+  // Admins continuam com acesso total (se implementarmos leitura de user_roles no futuro).
+  const hasPermission = (_permission: Permission) => !!user;
+
+  const changePassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    return !error;
+  };
+
+  const value = useMemo<AuthContextType>(() => ({
+    user,
+    isAuthenticated: !!user,
+    login,
+    signUp,
+    logout,
+    hasPermission,
+    changePassword,
+  }), [user]);
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, hasPermission, changePassword }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
@@ -137,8 +113,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 }

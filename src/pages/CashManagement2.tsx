@@ -58,6 +58,10 @@ export default function CashManagement2() {
     mutationFn: async (data: { type: string; amount: number; category: string; description: string; payment_method: string; proof_url: string }) => {
       const { data: userData } = await supabase.auth.getUser();
       
+      if (!userData.user) {
+        throw new Error('Usuário não autenticado');
+      }
+      
       if (isEditing && editingId) {
         const { error } = await supabase
           .from('cash_movements')
@@ -82,8 +86,8 @@ export default function CashManagement2() {
             description: data.description,
             payment_method: data.payment_method,
             proof_url: data.proof_url,
-            user_id: userData.user?.id,
-            created_by: userData.user?.email || 'system',
+            user_id: userData.user.id,
+            created_by: userData.user.email || 'system',
           }]);
         
         if (error) throw error;

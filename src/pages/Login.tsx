@@ -14,19 +14,28 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (login(username, password)) {
-      toast({
-        title: "Login realizado com sucesso!",
-        description: "Bem-vindo de volta.",
-      });
-      navigate('/dashboard');
-    } else {
+    try {
+      const success = await login(username, password);
+      if (success) {
+        toast({
+          title: "Login realizado com sucesso!",
+          description: "Bem-vindo de volta.",
+        });
+        navigate('/dashboard');
+      } else {
+        toast({
+          title: "Erro ao fazer login",
+          description: "Email ou senha incorretos.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
       toast({
         title: "Erro ao fazer login",
-        description: "Usuário ou senha incorretos.",
+        description: "Erro interno. Tente novamente.",
         variant: "destructive",
       });
     }
