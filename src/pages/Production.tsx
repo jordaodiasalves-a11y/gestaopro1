@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,41 +27,42 @@ export default function Production() {
   const { data: orders = [] } = useQuery({
     queryKey: ['production-orders'],
     queryFn: async () => {
-      const data = await base44.entities.ProductionOrder.list();
-      return data.sort((a: any, b: any) => {
-        const dateA = new Date(a.created_date || a.start_date).getTime();
-        const dateB = new Date(b.created_date || b.start_date).getTime();
-        return dateB - dateA;
-      });
+      const { data, error } = await supabase.from('production_orders').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
     },
   });
 
   const { data: products = [] } = useQuery({
     queryKey: ['products'],
-    queryFn: () => base44.entities.Product.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => {
-      console.log('Criando ordem de produção:', data);
-      return base44.entities.ProductionOrder.create(data);
+    mutationFn: async (data: any) => {
+      const { error } = await supabase.from('production_orders').insert(data);
+      if (error) throw error;
     },
-    onSuccess: (response) => {
-      console.log('Ordem criada com sucesso:', response);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['production-orders'] });
       toast.success("Ordem de produção criada!");
       setShowForm(false);
       setEditingOrder(null);
     },
     onError: (error: any) => {
-      console.error("Erro ao criar ordem:", error);
       toast.error(error?.message || "Erro ao criar ordem de produção");
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => 
-      base44.entities.ProductionOrder.update(id, data),
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const { error } = await supabase.from('production_orders').update(data).eq('id', id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['production-orders'] });
       toast.success("Ordem atualizada!");
@@ -74,7 +75,10 @@ export default function Production() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => base44.entities.ProductionOrder.delete(id),
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('production_orders').delete().eq('id', id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['production-orders'] });
       toast.success("Ordem excluída!");
@@ -83,7 +87,8 @@ export default function Production() {
 
   const deleteSelectedMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      await Promise.all(ids.map(id => base44.entities.ProductionOrder.delete(id)));
+      const { error } = await supabase.from('production_orders').delete().in('id', ids);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['production-orders'] });
@@ -93,8 +98,10 @@ export default function Production() {
   });
 
   const completeOrderMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => 
-      base44.entities.ProductionOrder.update(id, { ...data, status: "concluido", end_date: new Date().toISOString().split('T')[0] }),
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const { error } = await supabase.from('production_orders').update({ ...data, status: "concluido", end_date: new Date().toISOString().split('T')[0] }).eq('id', id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['production-orders'] });
       toast.success("Ordem concluída!");
@@ -143,7 +150,7 @@ export default function Production() {
   };
 
   const handleClone = async (order: any) => {
-    const { id, created_date, updated_date, ...clonedData } = order;
+    const { id, created_at, updated_at, ...clonedData } = order;
     const clonedOrder = {
       ...clonedData,
       order_name: `${clonedData.order_name} (Cópia)`,
@@ -273,9 +280,9 @@ export default function Production() {
                       <TableCell className="font-medium">
                         <div className="flex flex-col gap-1">
                           <span>{order.order_name}</span>
-                          {order.created_date && (
+                          {order.created_at && (
                             <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full w-fit">
-                              📅 {format(new Date(order.created_date), "dd/MM/yy HH:mm")}
+                              📅 {format(new Date(order.created_at), "dd/MM/yy HH:mm")}
                             </span>
                           )}
                         </div>
@@ -369,7 +376,7 @@ function ProductionOrderForm({ products, initialData, onSubmit, onCancel }: any)
       setFormData({
         ...formData,
         product_id: productId,
-        product_name: `${selectedProduct.product_name} - ${selectedProduct.variation_name}`
+        product_name: selectedProduct.name
       });
     }
   };

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,11 +20,18 @@ export default function Assets() {
 
   const { data: assets = [] } = useQuery({
     queryKey: ['assets'],
-    queryFn: () => base44.entities.Asset.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from('assets').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => base44.entities.Asset.create(data),
+    mutationFn: async (data: any) => {
+      const { error } = await supabase.from('assets').insert(data);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assets'] });
       toast.success("Ativo cadastrado com sucesso!");
@@ -33,7 +40,10 @@ export default function Assets() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => base44.entities.Asset.update(id, data),
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const { error } = await supabase.from('assets').update(data).eq('id', id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assets'] });
       toast.success("Ativo atualizado com sucesso!");
@@ -43,7 +53,10 @@ export default function Assets() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => base44.entities.Asset.delete(id),
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('assets').delete().eq('id', id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assets'] });
       toast.success("Ativo excluído com sucesso!");
@@ -51,7 +64,7 @@ export default function Assets() {
   });
 
   const handleClone = async (asset: any) => {
-    const { id, created_date, updated_date, ...clonedData } = asset;
+    const { id, created_at, updated_at, ...clonedData } = asset;
     const clonedAsset = {
       ...clonedData,
       name: `${clonedData.name} (Cópia)`,
@@ -61,7 +74,8 @@ export default function Assets() {
 
   const deleteSelectedMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      await Promise.all(ids.map(id => base44.entities.Asset.delete(id)));
+      const { error } = await supabase.from('assets').delete().in('id', ids);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assets'] });

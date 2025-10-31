@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,54 +21,49 @@ export default function Services() {
   const { data: services = [] } = useQuery({
     queryKey: ['services'],
     queryFn: async () => {
-      const data = await base44.entities.Service.list();
-      // Ordenar localmente por data de criação (mais recente primeiro)
-      return data.sort((a: any, b: any) => {
-        const dateA = new Date(a.created_date || a.service_date).getTime();
-        const dateB = new Date(b.created_date || b.service_date).getTime();
-        return dateB - dateA;
-      });
+      const { data, error } = await supabase.from('services').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => {
-      console.log('Criando serviço:', data);
-      return base44.entities.Service.create(data);
+    mutationFn: async (data: any) => {
+      const { error } = await supabase.from('services').insert(data);
+      if (error) throw error;
     },
-    onSuccess: (response) => {
-      console.log('Serviço criado com sucesso:', response);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] });
       toast.success("Serviço cadastrado com sucesso!");
       setShowForm(false);
       setEditingService(null);
     },
     onError: (error: any) => {
-      console.error('Erro ao criar serviço:', error);
       toast.error(error?.message || "Erro ao cadastrar serviço");
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => {
-      console.log('Atualizando serviço:', id, data);
-      return base44.entities.Service.update(id, data);
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const { error } = await supabase.from('services').update(data).eq('id', id);
+      if (error) throw error;
     },
-    onSuccess: (response) => {
-      console.log('Serviço atualizado:', response);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] });
       toast.success("Serviço atualizado com sucesso!");
       setEditingService(null);
       setShowForm(false);
     },
     onError: (error: any) => {
-      console.error('Erro ao atualizar serviço:', error);
       toast.error(error?.message || "Erro ao atualizar serviço");
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => base44.entities.Service.delete(id),
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('services').delete().eq('id', id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] });
       toast.success("Serviço excluído com sucesso!");
@@ -76,7 +71,7 @@ export default function Services() {
   });
 
   const handleClone = async (service: any) => {
-    const { id, created_date, updated_date, ...clonedData } = service;
+    const { id, created_at, updated_at, ...clonedData } = service;
     await createMutation.mutateAsync(clonedData);
   };
 
@@ -165,9 +160,9 @@ export default function Services() {
                     <TableCell>
                       <div className="flex flex-col gap-1">
                         <span>{service.service_date ? format(new Date(service.service_date), "dd/MM/yyyy") : "-"}</span>
-                        {service.created_date && (
+                        {service.created_at && (
                           <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full w-fit">
-                            📅 {format(new Date(service.created_date), "dd/MM/yy HH:mm")}
+                            📅 {format(new Date(service.created_at), "dd/MM/yy HH:mm")}
                           </span>
                         )}
                       </div>

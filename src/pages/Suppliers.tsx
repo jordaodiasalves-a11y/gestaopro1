@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -17,11 +17,18 @@ export default function Suppliers() {
 
   const { data: suppliers = [] } = useQuery({
     queryKey: ['suppliers'],
-    queryFn: () => base44.entities.Supplier.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from('suppliers').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => base44.entities.Supplier.create(data),
+    mutationFn: async (data: any) => {
+      const { error } = await supabase.from('suppliers').insert(data);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
       toast.success("Fornecedor cadastrado com sucesso!");
@@ -30,7 +37,10 @@ export default function Suppliers() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => base44.entities.Supplier.update(id, data),
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const { error } = await supabase.from('suppliers').update(data).eq('id', id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
       toast.success("Fornecedor atualizado com sucesso!");
@@ -40,7 +50,10 @@ export default function Suppliers() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => base44.entities.Supplier.delete(id),
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('suppliers').delete().eq('id', id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
       toast.success("Fornecedor excluído com sucesso!");
@@ -48,7 +61,7 @@ export default function Suppliers() {
   });
 
   const handleClone = async (supplier: any) => {
-    const { id, created_date, updated_date, ...clonedData } = supplier;
+    const { id, created_at, updated_at, ...clonedData } = supplier;
     const clonedSupplier = {
       ...clonedData,
       name: `${clonedData.name} (Cópia)`,

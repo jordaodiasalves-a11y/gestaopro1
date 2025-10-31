@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -17,11 +17,18 @@ export default function Employees() {
 
   const { data: employees = [] } = useQuery({
     queryKey: ['employees'],
-    queryFn: () => base44.entities.Employee.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from('employees').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => base44.entities.Employee.create(data),
+    mutationFn: async (data: any) => {
+      const { error } = await supabase.from('employees').insert(data);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       toast.success("Funcionário cadastrado com sucesso!");
@@ -30,7 +37,10 @@ export default function Employees() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => base44.entities.Employee.update(id, data),
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const { error } = await supabase.from('employees').update(data).eq('id', id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       toast.success("Funcionário atualizado com sucesso!");
@@ -40,7 +50,10 @@ export default function Employees() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => base44.entities.Employee.delete(id),
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('employees').delete().eq('id', id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       toast.success("Funcionário excluído com sucesso!");
@@ -48,11 +61,10 @@ export default function Employees() {
   });
 
   const handleClone = async (employee: any) => {
-    const { id, created_date, updated_date, ...clonedData } = employee;
+    const { id, created_at, updated_at, ...clonedData } = employee;
     const clonedEmployee = {
       ...clonedData,
       full_name: `${clonedData.full_name} (Cópia)`,
-      name: `${clonedData.full_name} (Cópia)`,
     };
     await createMutation.mutateAsync(clonedEmployee);
   };
@@ -152,7 +164,7 @@ function EmployeeForm({ initialData, onSubmit, onCancel }: any) {
         <CardTitle>{initialData ? 'Editar' : 'Novo'} Funcionário</CardTitle>
       </CardHeader>
       <CardContent className="p-6">
-        <form onSubmit={(e) => { e.preventDefault(); onSubmit({ ...formData, name: formData.full_name }); }} className="space-y-4">
+        <form onSubmit={(e) => { e.preventDefault(); onSubmit(formData); }} className="space-y-4">
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <Label>Nome Completo *</Label>

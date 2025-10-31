@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -19,16 +19,27 @@ export default function Materials() {
 
   const { data: materials = [] } = useQuery({
     queryKey: ['materials'],
-    queryFn: () => base44.entities.Material.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from('materials').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
   });
 
   const { data: suppliers = [] } = useQuery({
     queryKey: ['suppliers'],
-    queryFn: () => base44.entities.Supplier.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from('suppliers').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => base44.entities.Material.create(data),
+    mutationFn: async (data: any) => {
+      const { error } = await supabase.from('materials').insert(data);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materials'] });
       toast.success("Material cadastrado com sucesso!");
@@ -37,7 +48,10 @@ export default function Materials() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => base44.entities.Material.update(id, data),
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const { error } = await supabase.from('materials').update(data).eq('id', id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materials'] });
       toast.success("Material atualizado com sucesso!");
@@ -47,7 +61,10 @@ export default function Materials() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => base44.entities.Material.delete(id),
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('materials').delete().eq('id', id);
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materials'] });
       toast.success("Material excluído com sucesso!");
@@ -55,7 +72,7 @@ export default function Materials() {
   });
 
   const handleClone = async (material: any) => {
-    const { id, created_date, updated_date, ...clonedData } = material;
+    const { id, created_at, updated_at, ...clonedData } = material;
     const clonedMaterial = {
       ...clonedData,
       material_name: `${clonedData.material_name} (Cópia)`,

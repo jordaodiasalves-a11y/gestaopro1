@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      assets: {
+        Row: {
+          acquisition_date: string | null
+          acquisition_value: number | null
+          created_at: string | null
+          id: string
+          identifier: string | null
+          maintenance_history: Json | null
+          model_year: string | null
+          name: string
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          acquisition_date?: string | null
+          acquisition_value?: number | null
+          created_at?: string | null
+          id?: string
+          identifier?: string | null
+          maintenance_history?: Json | null
+          model_year?: string | null
+          name: string
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          acquisition_date?: string | null
+          acquisition_value?: number | null
+          created_at?: string | null
+          id?: string
+          identifier?: string | null
+          maintenance_history?: Json | null
+          model_year?: string | null
+          name?: string
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       cash_movements: {
         Row: {
           amount: number
@@ -89,6 +128,60 @@ export type Database = {
         }
         Relationships: []
       }
+      employees: {
+        Row: {
+          address: string | null
+          admission_date: string | null
+          cpf: string
+          created_at: string | null
+          email: string | null
+          emergency_contact: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string | null
+          pis: string | null
+          position: string
+          rg: string | null
+          salary: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          admission_date?: string | null
+          cpf: string
+          created_at?: string | null
+          email?: string | null
+          emergency_contact?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          pis?: string | null
+          position: string
+          rg?: string | null
+          salary?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          admission_date?: string | null
+          cpf?: string
+          created_at?: string | null
+          email?: string | null
+          emergency_contact?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          pis?: string | null
+          position?: string
+          rg?: string | null
+          salary?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
@@ -124,6 +217,50 @@ export type Database = {
           payment_method?: string | null
         }
         Relationships: []
+      }
+      invoices: {
+        Row: {
+          created_at: string | null
+          document_url: string | null
+          id: string
+          invoice_number: string
+          issue_date: string | null
+          supplier_id: string | null
+          supplier_name: string | null
+          total_value: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          document_url?: string | null
+          id?: string
+          invoice_number: string
+          issue_date?: string | null
+          supplier_id?: string | null
+          supplier_name?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          document_url?: string | null
+          id?: string
+          invoice_number?: string
+          issue_date?: string | null
+          supplier_id?: string | null
+          supplier_name?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       marketplace_orders: {
         Row: {
@@ -166,6 +303,93 @@ export type Database = {
           order_number?: string
           status?: string
           total_amount?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      materials: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          id: string
+          location: string | null
+          material_name: string
+          minimum_quantity: number | null
+          notes: string | null
+          quantity: number | null
+          supplier: string | null
+          unit: string | null
+          unit_cost: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          material_name: string
+          minimum_quantity?: number | null
+          notes?: string | null
+          quantity?: number | null
+          supplier?: string | null
+          unit?: string | null
+          unit_cost?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          material_name?: string
+          minimum_quantity?: number | null
+          notes?: string | null
+          quantity?: number | null
+          supplier?: string | null
+          unit?: string | null
+          unit_cost?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      production_orders: {
+        Row: {
+          created_at: string | null
+          end_date: string | null
+          id: string
+          notes: string | null
+          order_name: string
+          product_id: string | null
+          product_name: string | null
+          quantity_to_produce: number | null
+          start_date: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          order_name: string
+          product_id?: string | null
+          product_name?: string | null
+          quantity_to_produce?: number | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          order_name?: string
+          product_id?: string | null
+          product_name?: string | null
+          quantity_to_produce?: number | null
+          start_date?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -275,6 +499,105 @@ export type Database = {
           notes?: string | null
           payment_method?: string | null
           total_amount?: number
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          client_name: string | null
+          created_at: string | null
+          hourly_rate: number | null
+          hours_worked: number | null
+          id: string
+          machine_name: string | null
+          notes: string | null
+          service_date: string | null
+          service_name: string
+          service_type: string | null
+          status: string | null
+          total_value: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_name?: string | null
+          created_at?: string | null
+          hourly_rate?: number | null
+          hours_worked?: number | null
+          id?: string
+          machine_name?: string | null
+          notes?: string | null
+          service_date?: string | null
+          service_name: string
+          service_type?: string | null
+          status?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_name?: string | null
+          created_at?: string | null
+          hourly_rate?: number | null
+          hours_worked?: number | null
+          id?: string
+          machine_name?: string | null
+          notes?: string | null
+          service_date?: string | null
+          service_name?: string
+          service_type?: string | null
+          status?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          cep: string | null
+          city: string | null
+          cnpj: string | null
+          contact_person: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          inscricao_estadual: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          state: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          cep?: string | null
+          city?: string | null
+          cnpj?: string | null
+          contact_person?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          cep?: string | null
+          city?: string | null
+          cnpj?: string | null
+          contact_person?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
